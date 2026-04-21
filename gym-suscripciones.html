@@ -389,13 +389,8 @@
   const getNombre = s => ((s.fields[F.nombre]||'')+' '+(s.fields[F.apellido]||'')).trim();
   const getPlan = s => { const v=s.fields[F.suscrip]; return (v&&typeof v==='object')?v.name:(v||''); };
   const pagóEsteMes = s => {
-    const d=new Date();
-    return pagos.some(p => {
-      if(p.fields[FP.socioId] !== s.id) return false;
-      const f=p.fields[FP.fechaPago]; if(!f) return false;
-      const pd=new Date(f);
-      return pd.getMonth()===d.getMonth() && pd.getFullYear()===d.getFullYear();
-    });
+    // Pagó = tiene al menos un pago registrado en la tabla Pagos
+    return pagos.some(p => p.fields[FP.socioId] === s.id);
   };
 
   const getEstado = s => {
@@ -459,22 +454,21 @@
     hide('loading-socios'); show('tabla-wrap');
   }
 
-  async function cargarPagos(){
-    show('loading-pagos');
+  async function cargarPagos(silencioso=false){
+    if(!silencioso) show('loading-pagos');
     try{
       pagos=await fetchAll(T_PAG);
-      renderPagos(); renderStats();
+      if(!silencioso){ renderPagos(); renderStats(); }
     }catch(e){ showToast('Error al cargar pagos: '+e.message); }
-    hide('loading-pagos');
+    if(!silencioso) hide('loading-pagos');
   }
 
   async function init(){
-    // Ocultar deudores hasta tener todos los datos
     const sec = document.getElementById('deudores-section');
     if(sec) sec.style.display='none';
+    // Cargar pagos PRIMERO para que estén disponibles al renderizar socios
+    await cargarPagos(true);
     await cargarSocios();
-    await cargarPagos();
-    // Mostrar deudores recién cuando ambos están listos
     if(sec) sec.style.display='block';
     renderDeudores();
   }
