@@ -199,7 +199,7 @@
     </div>
 
     <!-- Sección deudores -->
-    <div id="deudores-section" style="margin-top:1.5rem;">
+    <div id="deudores-section" style="margin-top:1.5rem;display:none;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
         <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--red);">Deben este mes</div>
         <span id="deudores-count" class="badge badge-vencido"></span>
@@ -468,7 +468,16 @@
     hide('loading-pagos');
   }
 
-  async function init(){ await cargarSocios(); await cargarPagos(); }
+  async function init(){
+    // Ocultar deudores hasta tener todos los datos
+    const sec = document.getElementById('deudores-section');
+    if(sec) sec.style.display='none';
+    await cargarSocios();
+    await cargarPagos();
+    // Mostrar deudores recién cuando ambos están listos
+    if(sec) sec.style.display='block';
+    renderDeudores();
+  }
 
   // ─── RENDER ───────────────────────────────────────────────
   function renderStats(){
