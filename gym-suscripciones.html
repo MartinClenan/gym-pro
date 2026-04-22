@@ -164,9 +164,9 @@
     <!-- Vista socios -->
     <div id="view-socios">
       <div class="tabs">
-        <button class="tab-btn active" onclick="setTabSocios('activos',this)">Activos</button>
+        <button class="tab-btn active" onclick="setTabSocios('todos',this)">Todos</button>
+        <button class="tab-btn" onclick="setTabSocios('activos',this)">Activos</button>
         <button class="tab-btn" onclick="setTabSocios('vencidos',this)">Vencidos</button>
-        <button class="tab-btn" onclick="setTabSocios('todos',this)">Todos</button>
       </div>
       <div class="toolbar">
         <input type="text" id="search" placeholder="Buscar por nombre o teléfono..." oninput="renderTabla()">
@@ -377,7 +377,7 @@
 
   const PLAN_DIAS = {'Día':1,'Semana':7,'Mes':30};
 
-  let socios = [], pagos = [], editId = null, histSocioId = null, tabSocios = 'activos';
+  let socios = [], pagos = [], editId = null, histSocioId = null, tabSocios = 'todos';
 
   // ─── UTILS ────────────────────────────────────────────────
   const today = () => new Date().toISOString().slice(0,10);
