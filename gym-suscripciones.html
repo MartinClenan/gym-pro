@@ -140,6 +140,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
       Pagos
     </button>
+    <button class="nav-btn" onclick="setView('resumen',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Resumen
+    </button>
     <div class="sidebar-bottom">
       <button class="nav-btn" onclick="exportarCSV()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -194,6 +198,46 @@
             <th style="width:18%">Acciones</th>
           </tr></thead>
           <tbody id="tbody-socios"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vista resumen mensual -->
+    <div id="view-resumen" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn" id="btn-mes-ant" onclick="cambiarMes(-1)">&#8592;</button>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;min-width:160px;text-align:center;" id="resumen-mes-label"></div>
+          <button class="btn" id="btn-mes-sig" onclick="cambiarMes(1)">&#8594;</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-left:auto;">
+          <div class="stat-card" style="padding:8px 16px;min-width:100px;text-align:center;">
+            <div class="stat-label">Pagaron</div>
+            <div class="stat-num" style="font-size:20px;color:var(--accent)" id="resumen-pagaron">0</div>
+          </div>
+          <div class="stat-card" style="padding:8px 16px;min-width:100px;text-align:center;">
+            <div class="stat-label">Deben</div>
+            <div class="stat-num" style="font-size:20px;color:var(--red)" id="resumen-deben">0</div>
+          </div>
+          <div class="stat-card" style="padding:8px 16px;min-width:120px;text-align:center;">
+            <div class="stat-label">Total recaudado</div>
+            <div class="stat-num" style="font-size:16px;" id="resumen-total">$0</div>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:22%">Socio</th>
+            <th style="width:10%">Plan</th>
+            <th style="width:11%">Precio</th>
+            <th style="width:13%">Fecha pago</th>
+            <th style="width:13%">Vencimiento</th>
+            <th style="width:10%">Estado</th>
+            <th style="width:11%">Pago mes</th>
+            <th style="width:10%">Acción</th>
+          </tr></thead>
+          <tbody id="tbody-resumen"></tbody>
         </table>
       </div>
     </div>
@@ -581,10 +625,13 @@
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
     document.getElementById('view-socios').style.display=v==='socios'?'block':'none';
     document.getElementById('view-pagos').style.display=v==='pagos'?'block':'none';
-    document.getElementById('page-title').textContent=v==='socios'?'Socios':'Historial de pagos';
+    document.getElementById('view-resumen').style.display=v==='resumen'?'block':'none';
+    const titles={'socios':'Socios','pagos':'Historial de pagos','resumen':'Resumen mensual'};
+    document.getElementById('page-title').textContent=titles[v]||'';
     document.getElementById('btn-nuevo').style.display=v==='socios'?'inline-flex':'none';
     if(v==='pagos'&&!pagos.length) cargarPagos();
     else if(v==='pagos') renderPagos();
+    if(v==='resumen'){ mesCursor=new Date(); renderResumen(); }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -846,6 +893,69 @@
   document.querySelectorAll('.modal-overlay').forEach(el=>{
     el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});
   });
+
+  // ─── RESUMEN MENSUAL ──────────────────────────────────────
+  let mesCursor = new Date();
+
+  function nombreMes(d){
+    const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return meses[d.getMonth()]+' '+d.getFullYear();
+  }
+
+  function cambiarMes(delta){
+    mesCursor = new Date(mesCursor.getFullYear(), mesCursor.getMonth()+delta, 1);
+    renderResumen();
+  }
+
+  function renderResumen(){
+    const m = mesCursor.getMonth();
+    const y = mesCursor.getFullYear();
+    document.getElementById('resumen-mes-label').textContent = nombreMes(mesCursor);
+
+    // Para cada socio, buscar si tiene un pago en ese mes
+    const filas = socios.map(s => {
+      const pagosMes = pagos.filter(p => {
+        if(p.fields[FP.socioId] !== s.id) return false;
+        const f = p.fields[FP.fechaPago]; if(!f) return false;
+        const d = new Date(f);
+        return d.getMonth()===m && d.getFullYear()===y;
+      });
+      const pago = pagosMes.length ? pagosMes[pagosMes.length-1] : null;
+      return { socio: s, pago };
+    });
+
+    const pagaron = filas.filter(f=>f.pago).length;
+    const deben   = filas.filter(f=>!f.pago).length;
+    const total   = filas.filter(f=>f.pago).reduce((a,f)=>a+Number(f.pago.fields[FP.monto]||0),0);
+
+    document.getElementById('resumen-pagaron').textContent = pagaron;
+    document.getElementById('resumen-deben').textContent   = deben;
+    document.getElementById('resumen-total').textContent   = fmtMoney(total);
+
+    const tbody = document.getElementById('tbody-resumen');
+    if(!filas.length){ tbody.innerHTML=`<tr><td colspan="8"><div class="empty">No hay socios</div></td></tr>`; return; }
+
+    tbody.innerHTML = filas.map(({socio:s, pago:p}) => {
+      const nombre=getNombre(s), plan=getPlan(s)||'-', est=getEstado(s);
+      const estB=est==='activo'?'<span class="badge badge-activo">Activo</span>':est==='vence'?'<span class="badge badge-vence">Vence pronto</span>':'<span class="badge badge-vencido">Vencido</span>';
+      const pagoB=p?'<span class="badge badge-activo">Pagó</span>':'<span class="badge badge-vencido">Debe</span>';
+      const fechaPago=p?fmtDate(p.fields[FP.fechaPago]):'-';
+      const vencPago=p?fmtDate(p.fields[FP.vencNuevo]||''):fmtDate(s.fields[F.fecha]);
+      const accion=p?'':`<button class="btn btn-sm btn-ghost" onclick="openHistById('${s.id}')">Cobrar</button>`;
+      return `<tr>
+        <td><div class="name-cell"><div class="avatar">${initials(nombre)}</div>
+          <div><div class="name-main">${nombre}</div><div class="name-sub">${s.fields[F.contacto]||''}</div></div>
+        </div></td>
+        <td><span class="badge plan-${plan}">${plan}</span></td>
+        <td>${fmtMoney(s.fields[F.precio]||0)}</td>
+        <td>${fechaPago}</td>
+        <td>${vencPago}</td>
+        <td>${estB}</td>
+        <td>${pagoB}</td>
+        <td>${accion}</td>
+      </tr>`;
+    }).join('');
+  }
 
   // ─── DEUDORES ─────────────────────────────────────────────
   function renderDeudores(){
