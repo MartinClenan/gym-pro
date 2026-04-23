@@ -219,23 +219,26 @@
             <div class="stat-label">Deben</div>
             <div class="stat-num" style="font-size:20px;color:var(--red)" id="resumen-deben">0</div>
           </div>
-          <div class="stat-card" style="padding:8px 16px;min-width:120px;text-align:center;">
-            <div class="stat-label">Total recaudado</div>
+          <div class="stat-card" style="padding:8px 16px;min-width:130px;text-align:center;">
+            <div class="stat-label">Recaudado</div>
             <div class="stat-num" style="font-size:16px;" id="resumen-total">$0</div>
+          </div>
+          <div class="stat-card" style="padding:8px 16px;min-width:100px;text-align:center;">
+            <div class="stat-label">Pendiente</div>
+            <div class="stat-num" style="font-size:16px;color:var(--red)" id="resumen-pendiente">$0</div>
           </div>
         </div>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="width:22%">Socio</th>
+            <th style="width:25%">Socio</th>
             <th style="width:10%">Plan</th>
-            <th style="width:11%">Precio</th>
-            <th style="width:13%">Fecha pago</th>
-            <th style="width:13%">Vencimiento</th>
-            <th style="width:10%">Estado</th>
-            <th style="width:11%">Pago mes</th>
-            <th style="width:10%">Acción</th>
+            <th style="width:12%">Monto</th>
+            <th style="width:14%">Fecha pago</th>
+            <th style="width:14%">Vencimiento</th>
+            <th style="width:12%">Estado pago</th>
+            <th style="width:13%">Acción</th>
           </tr></thead>
           <tbody id="tbody-resumen"></tbody>
         </table>
@@ -928,29 +931,33 @@
     const deben   = filas.filter(f=>!f.pago).length;
     const total   = filas.filter(f=>f.pago).reduce((a,f)=>a+Number(f.pago.fields[FP.monto]||0),0);
 
-    document.getElementById('resumen-pagaron').textContent = pagaron;
-    document.getElementById('resumen-deben').textContent   = deben;
-    document.getElementById('resumen-total').textContent   = fmtMoney(total);
+    const pendiente = filas.filter(f=>!f.pago).reduce((a,f)=>a+Number(f.socio.fields[F.precio]||0),0);
+    document.getElementById('resumen-pagaron').textContent   = pagaron;
+    document.getElementById('resumen-deben').textContent     = deben;
+    document.getElementById('resumen-total').textContent     = fmtMoney(total);
+    document.getElementById('resumen-pendiente').textContent = fmtMoney(pendiente);
 
     const tbody = document.getElementById('tbody-resumen');
     if(!filas.length){ tbody.innerHTML=`<tr><td colspan="8"><div class="empty">No hay socios</div></td></tr>`; return; }
 
     tbody.innerHTML = filas.map(({socio:s, pago:p}) => {
-      const nombre=getNombre(s), plan=getPlan(s)||'-', est=getEstado(s);
-      const estB=est==='activo'?'<span class="badge badge-activo">Activo</span>':est==='vence'?'<span class="badge badge-vence">Vence pronto</span>':'<span class="badge badge-vencido">Vencido</span>';
+      const nombre=getNombre(s), plan=getPlan(s)||'-';
       const pagoB=p?'<span class="badge badge-activo">Pagó</span>':'<span class="badge badge-vencido">Debe</span>';
-      const fechaPago=p?fmtDate(p.fields[FP.fechaPago]):'-';
-      const vencPago=p?fmtDate(p.fields[FP.vencNuevo]||''):fmtDate(s.fields[F.fecha]);
-      const accion=p?'':`<button class="btn btn-sm btn-ghost" onclick="openHistById('${s.id}')">Cobrar</button>`;
-      return `<tr>
-        <td><div class="name-cell"><div class="avatar">${initials(nombre)}</div>
+      const fechaPago=p?fmtDate(p.fields[FP.fechaPago]):'—';
+      const vencPago=p?fmtDate(p.fields[FP.vencNuevo]||''):'—';
+      const monto=p?fmtMoney(p.fields[FP.monto]||0):`<span style="color:var(--text3)">${fmtMoney(s.fields[F.precio]||0)}</span>`;
+      const accion=p
+        ?`<button class="btn btn-sm btn-ghost" onclick="editarPago('${p.id}')">Editar</button>`
+        :`<button class="btn btn-sm" style="background:var(--red-dim);color:var(--red);border:none;" onclick="openHistById('${s.id}')">Cobrar</button>`;
+      const rowStyle=p?'':'opacity:0.75;';
+      return `<tr style="${rowStyle}">
+        <td><div class="name-cell"><div class="avatar" style="${p?'':'background:var(--red-dim);color:var(--red);border-color:rgba(255,85,85,0.2)'}">${initials(nombre)}</div>
           <div><div class="name-main">${nombre}</div><div class="name-sub">${s.fields[F.contacto]||''}</div></div>
         </div></td>
         <td><span class="badge plan-${plan}">${plan}</span></td>
-        <td>${fmtMoney(s.fields[F.precio]||0)}</td>
+        <td>${monto}</td>
         <td>${fechaPago}</td>
         <td>${vencPago}</td>
-        <td>${estB}</td>
         <td>${pagoB}</td>
         <td>${accion}</td>
       </tr>`;
