@@ -522,7 +522,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // ─── CONFIG ───────────────────────────────────────────────
+  // --- CONFIG -----------------------------------------------
   const API_KEY = 'patBZlyKEB8GuRLpG.ef1d684e17de16f8192bb6b43368ed8859b6286d2996ed4ebe19d025883b8d92';
   const BASE    = 'appvBGUGQgezRFnaE';
   const T_SOC   = 'tblp50VDdK0zxIPJw'; // tabla Alumnos
@@ -553,7 +553,7 @@
 
   let socios = [], pagos = [], editId = null, histSocioId = null, tabSocios = 'todos';
 
-  // ─── UTILS ────────────────────────────────────────────────
+  // --- UTILS ------------------------------------------------
   const today = () => new Date().toISOString().slice(0,10);
   const addDias = (f,d) => { const dt=new Date(f); dt.setDate(dt.getDate()+d); return dt.toISOString().slice(0,10); };
   const diffDias = (a,b) => Math.round((new Date(a)-new Date(b))/86400000);
@@ -573,9 +573,9 @@
     return d<0?'vencido':d<=7?'vence':'activo';
   };
 
-  // ─── API ──────────────────────────────────────────────────
+  // --- API --------------------------------------------------
   // Normaliza campos: la API de Airtable devuelve fields con nombre de texto,
-  // pero el código los espera por ID. Este mapa convierte de nombre → ID.
+  // pero el código los espera por ID. Este mapa convierte de nombre - ID.
   const FNAME = {
     'Nombre':F.nombre,'Apellido':F.apellido,'Contacto':F.contacto,
     'Suscripci\u00f3n':F.suscrip,'Precio':F.precio,'Fecha':F.fecha,'Notas':F.notas,
@@ -617,7 +617,7 @@
     return all;
   }
 
-  // ─── CARGA ────────────────────────────────────────────────
+  // --- CARGA ------------------------------------------------
   async function cargarSocios(){
     show('loading-socios'); hide('tabla-wrap'); setSyncStatus('Sincronizando...');
     try{
@@ -647,7 +647,7 @@
     renderDeudores();
   }
 
-  // ─── RENDER ───────────────────────────────────────────────
+  // --- RENDER -----------------------------------------------
   function renderStats(){
     const activos=socios.filter(s=>getEstado(s)==='activo').length;
     const vencidos=socios.filter(s=>getEstado(s)==='vencido').length;
@@ -750,7 +750,7 @@
     }).join('');
   }
 
-  // ─── SOCIO CRUD ───────────────────────────────────────────
+  // --- SOCIO CRUD -------------------------------------------
   function setView(v,btn){
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
     document.getElementById('view-socios').style.display=v==='socios'?'block':'none';
@@ -885,7 +885,7 @@
     }catch(e){showToast('Error: '+e.message);}
   }
 
-  // ─── PAGOS ────────────────────────────────────────────────
+  // --- PAGOS ------------------------------------------------
   function abrirHistSocio(){closeModal('modal-socio');openHistById(editId);}
 
   async function openHistById(id){
@@ -1007,7 +1007,7 @@
     btnLoad('btn-guardar-pago-rap','Guardar',false);
   }
 
-  // ─── EXPORT ───────────────────────────────────────────────
+  // --- EXPORT -----------------------------------------------
   function exportarCSV(){
     const rows=[['Nombre','Apellido','Teléfono','Plan','Precio','Vencimiento','Estado','Notas']];
     socios.forEach(s=>rows.push([
@@ -1022,7 +1022,7 @@
     a.download='socios-gym.csv'; a.click();
   }
 
-  // ─── HELPERS ──────────────────────────────────────────────
+  // --- HELPERS ----------------------------------------------
   function closeModal(id){document.getElementById(id).classList.remove('open');}
   function show(id){document.getElementById(id).style.display='flex';}
   function hide(id){document.getElementById(id).style.display='none';}
@@ -1040,7 +1040,7 @@
     el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});
   });
 
-  // ─── RESUMEN MENSUAL ──────────────────────────────────────
+  // --- RESUMEN MENSUAL --------------------------------------
   let mesCursor = new Date();
 
   function nombreMes(d){
@@ -1107,7 +1107,7 @@
     }).join('');
   }
 
-  // ─── ESTADÍSTICAS ────────────────────────────────────────
+  // --- ESTADÍSTICAS ----------------------------------------
   function renderEstadisticas(){
     const now = new Date();
     const mes = now.getMonth(), anio = now.getFullYear();
@@ -1207,7 +1207,7 @@
     }
   }
 
-  // ─── ASISTENCIA ──────────────────────────────────────────
+  // --- ASISTENCIA ------------------------------------------
   let diaCursor = new Date();
 
   function fechaKey(d){
@@ -1304,7 +1304,7 @@
     return count;
   }
 
-  // ─── IMPORTAR LISTA ──────────────────────────────────────
+  // --- IMPORTAR LISTA --------------------------------------
   let importNuevos = [], importExisten = [];
 
   function parsearLinea(linea){
@@ -1312,8 +1312,8 @@
     linea = linea.trim();
     if(!linea) return null;
     // Quitar número inicial
-    linea = linea.replace(/^\d+\s*[-–]\s*/, '').trim();
-    const partes = linea.split(/\s*[-–]\s*/);
+    linea = linea.replace(/^\d+\s*[-]\s*/, '').trim();
+    const partes = linea.split(/\s*[-]\s*/);
     if(partes.length < 2) return null;
 
     const nombreCompleto = partes[0].trim();
@@ -1463,7 +1463,7 @@
     render();
   }
 
-  // ─── DEUDORES ─────────────────────────────────────────────
+  // --- DEUDORES ---------------------------------------------
   function renderDeudores(){
     const deudores = socios.filter(s => !pagóEsteMes(s));
     const count = document.getElementById('deudores-count');
@@ -1487,7 +1487,7 @@
     }).join('');
   }
 
-  // ─── EDITAR PAGO ──────────────────────────────────────────
+  // --- EDITAR PAGO ------------------------------------------
   let editPagoId = null;
 
   function autoVencPago(){
@@ -1547,7 +1547,7 @@
     editPagoId=null;
   }
 
-  // ─── INIT ─────────────────────────────────────────────────
+  // --- INIT -------------------------------------------------
   init();
 </script>
 </body>
