@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym -- Suscripciones</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);--text:#f0f0f0;--text2:#888;--text3:#555;--accent:#c8f04a;--accent-dim:rgba(200,240,74,0.12);--accent-text:#0f0f0f;--red:#ff5555;--red-dim:rgba(255,85,85,0.12);--amber:#f4a94a;--amber-dim:rgba(244,169,74,0.12);--green:#4acf7f;--green-dim:rgba(74,207,127,0.12);--blue:#5ab4f4;--blue-dim:rgba(90,180,244,0.12);--purple:#a78bfa;--purple-dim:rgba(167,139,250,0.12);--radius:10px;--radius-lg:14px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+  .app{display:flex;min-height:100vh;}
+  .sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:6px;}
+  .main{flex:1;padding:2rem;overflow-x:hidden;}
+  .logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent);padding:0 0.5rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:0.5rem;}
+  .logo span{color:var(--text);}
+  .nav-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius);background:transparent;border:none;color:var(--text2);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;text-align:left;transition:all 0.15s;}
+  .nav-btn:hover{background:var(--surface2);color:var(--text);}
+  .nav-btn.active{background:var(--accent-dim);color:var(--accent);}
+  .nav-btn svg{width:16px;height:16px;flex-shrink:0;}
+  .sidebar-bottom{margin-top:auto;border-top:1px solid var(--border);padding-top:1rem;}
+  .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:12px;}
+  .page-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;}
+  .header-actions{display:flex;gap:8px;align-items:center;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.15s;}
+  .btn:hover{background:var(--surface2);}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .btn-primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:600;}
+  .btn-primary:hover{background:#d4f55c;border-color:#d4f55c;}
+  .btn-sm{padding:5px 10px;font-size:12px;}
+  .btn-ghost{border-color:transparent;color:var(--text2);}
+  .btn-ghost:hover{background:var(--surface2);color:var(--text);border-color:transparent;}
+  .btn-danger{color:var(--red);border-color:transparent;}
+  .btn-danger:hover{background:var(--red-dim);}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:1.75rem;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.1rem 1.25rem;}
+  .stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+  .stat-num{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;line-height:1;}
+  .stat-sub{font-size:12px;color:var(--text3);margin-top:4px;}
+  .alerts-box{background:var(--amber-dim);border:1px solid rgba(244,169,74,0.25);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:1.5rem;}
+  .alerts-title{font-size:12px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;}
+  .alert-row{display:flex;justify-content:space-between;font-size:13px;color:var(--amber);padding:4px 0;border-bottom:1px solid rgba(244,169,74,0.15);}
+  .alert-row:last-child{border-bottom:none;}
+  .toolbar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;}
+  .toolbar input,.toolbar select{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;}
+  .toolbar input{flex:1;min-width:180px;}
+  .toolbar select option{background:var(--surface2);}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  th{background:var(--surface2);color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.7px;font-weight:500;padding:11px 14px;text-align:left;border-bottom:1px solid var(--border);}
+  td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,0.02);}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent-dim);border:1px solid rgba(200,240,74,0.2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0;}
+  .name-cell{display:flex;align-items:center;gap:10px;}
+  .name-main{font-weight:500;font-size:13px;}
+  .name-sub{font-size:12px;color:var(--text3);}
+  .badge{display:inline-flex;align-items:center;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;}
+  .badge-activo{background:var(--green-dim);color:var(--green);}
+  .badge-vence{background:var(--amber-dim);color:var(--amber);}
+  .badge-vencido{background:var(--red-dim);color:var(--red);}
+  .plan-Dia{background:var(--blue-dim);color:var(--blue);}
+  .plan-Semana{background:var(--purple-dim);color:var(--purple);}
+  .plan-Mes{background:var(--green-dim);color:var(--green);}
+  .action-row{display:flex;gap:2px;}
+  .empty{text-align:center;color:var(--text3);padding:2.5rem 0;font-size:13px;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;padding:1rem;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.5rem;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
+  .modal h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:1.25rem;}
+  .field{margin-bottom:14px;}
+  .field label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:5px;}
+  .field input,.field select,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+  .field select option{background:var(--surface2);}
+  .field textarea{resize:none;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal-actions{display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap;}
+  .hist-list{max-height:200px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;}
+  .hist-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;}
+  .hist-item:last-child{border-bottom:none;}
+  .hist-fecha{color:var(--text2);min-width:80px;}
+  .hist-periodo{color:var(--text3);font-size:12px;flex:1;}
+  .hist-monto{font-weight:500;color:var(--accent);}
+  .tabs{display:flex;gap:2px;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px;width:fit-content;}
+  .tab-btn{padding:7px 18px;border-radius:7px;border:none;background:transparent;color:var(--text2);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+  .tab-btn.active{background:var(--surface2);color:var(--text);}
+  .loading-row{display:flex;align-items:center;gap:8px;color:var(--text3);font-size:13px;padding:1rem 0;}
+  .spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 18px;font-size:13px;color:var(--text);z-index:999;display:none;animation:fadeIn 0.2s;}
+  .toast.show{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+  @media(max-width:700px){
+    .app{flex-direction:column;}
+    .sidebar{width:100%;flex-direction:row;flex-wrap:wrap;padding:1rem;gap:4px;}
+    .logo{padding-bottom:0;border-bottom:none;margin-bottom:0;}
+    .main{padding:1rem;}
+    .stats-grid{grid-template-columns:repeat(2,1fr);}
+    .sidebar-bottom{margin-top:0;border-top:none;padding-top:0;}
+    .table-wrap{overflow-x:auto;}
+    table{table-layout:auto;min-width:500px;}
+    .field-row{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">GYM<span>PRO</span></div>
+    <button class="nav-btn active" onclick="setView('socios',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Socios
+    </button>
+    <button class="nav-btn" onclick="setView('pagos',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      Pagos
+    </button>
+    <button class="nav-btn" onclick="setView('resumen',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Resumen
+    </button>
+    <button class="nav-btn" onclick="setView('stats',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Estadisticas
+    </button>
+    <button class="nav-btn" onclick="setView('asistencia',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Asistencia
+    </button>
+    <div class="sidebar-bottom">
+      <button class="nav-btn" onclick="exportarCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar CSV
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div class="page-title" id="page-title">Socios</div>
+      <div class="header-actions">
+        <span id="sync-status" style="font-size:12px;color:var(--text3);"></span>
+        <button class="btn" onclick="openPagoRapido()">Registrar pago</button>
+        <button class="btn btn-primary" id="btn-nuevo" onclick="openModal()">+ Nuevo socio</button>
+      </div>
+    </div>
+
+    <div class="stats-grid" id="stats-row"></div>
+    <div id="alerts-area"></div>
+
+    <!-- Socios -->
+    <div id="view-socios">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="setTabSocios('todos',this)">Todos</button>
+        <button class="tab-btn" onclick="setTabSocios('activos',this)">Activos</button>
+        <button class="tab-btn" onclick="setTabSocios('vencidos',this)">Vencidos</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="search" placeholder="Buscar por nombre o telefono..." oninput="renderTabla()">
+        <select id="filter-plan" onchange="renderTabla()">
+          <option value="">Todos los planes</option>
+          <option value="Dia">Dia</option>
+          <option value="Semana">Semana</option>
+          <option value="Mes">Mes</option>
+        </select>
+        <button class="btn" onclick="init()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Actualizar
+        </button>
+      </div>
+      <div id="loading-socios" class="loading-row" style="display:none;"><div class="spinner"></div>Cargando...</div>
+      <div class="table-wrap" id="tabla-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:25%">Socio</th>
+            <th style="width:11%">Plan</th>
+            <th style="width:11%">Precio</th>
+            <th style="width:15%">Vencimiento</th>
+            <th style="width:11%">Estado</th>
+            <th style="width:10%">Pago mes</th>
+            <th style="width:17%">Acciones</th>
+          </tr></thead>
+          <tbody id="tbody-socios"></tbody>
+        </table>
+      </div>
+      <!-- Deudores -->
+      <div id="deudores-section" style="margin-top:1.5rem;display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--red);">Deben este mes</div>
+          <span id="deudores-count" class="badge badge-vencido"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:35%">Socio</th>
+              <th style="width:15%">Plan</th>
+              <th style="width:15%">Precio</th>
+              <th style="width:20%">Vencimiento</th>
+              <th style="width:15%">Accion</th>
+            </tr></thead>
+            <tbody id="tbody-deudores"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagos -->
+    <div id="view-pagos" style="display:none;">
+      <div class="toolbar">
+        <input type="text" id="search-pago" placeholder="Buscar por socio..." oninput="renderPagos()">
+        <button class="btn" onclick="cargarPagos()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Actualizar
+        </button>
+      </div>
+      <div id="loading-pagos" class="loading-row" style="display:none;"><div class="spinner"></div>Cargando pagos...</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:28%">Socio</th>
+            <th style="width:12%">Plan</th>
+            <th style="width:13%">Monto</th>
+            <th style="width:17%">Fecha pago</th>
+            <th style="width:20%">Periodo cubierto</th>
+            <th style="width:10%"></th>
+          </tr></thead>
+          <tbody id="tbody-pagos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Resumen mensual -->
+    <div id="view-resumen" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn" onclick="cambiarMes(-1)">&larr;</button>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;min-width:160px;text-align:center;" id="resumen-mes-label"></div>
+          <button class="btn" onclick="cambiarMes(1)">&rarr;</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-left:auto;flex-wrap:wrap;">
+          <div class="stat-card" style="padding:8px 16px;min-width:100px;text-align:center;"><div class="stat-label">Pagaron</div><div class="stat-num" style="font-size:20px;color:var(--accent)" id="resumen-pagaron">0</div></div>
+          <div class="stat-card" style="padding:8px 16px;min-width:100px;text-align:center;"><div class="stat-label">Deben</div><div class="stat-num" style="font-size:20px;color:var(--red)" id="resumen-deben">0</div></div>
+          <div class="stat-card" style="padding:8px 16px;min-width:130px;text-align:center;"><div class="stat-label">Recaudado</div><div class="stat-num" style="font-size:16px;" id="resumen-total">$0</div></div>
+          <div class="stat-card" style="padding:8px 16px;min-width:100px;text-align:center;"><div class="stat-label">Pendiente</div><div class="stat-num" style="font-size:16px;color:var(--red)" id="resumen-pendiente">$0</div></div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:25%">Socio</th>
+            <th style="width:10%">Plan</th>
+            <th style="width:12%">Monto</th>
+            <th style="width:14%">Fecha pago</th>
+            <th style="width:14%">Vencimiento</th>
+            <th style="width:12%">Estado pago</th>
+            <th style="width:13%">Accion</th>
+          </tr></thead>
+          <tbody id="tbody-resumen"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Estadisticas -->
+    <div id="view-stats" style="display:none;">
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card"><div class="stat-label">Total socios</div><div class="stat-num" id="st-total">0</div></div>
+        <div class="stat-card"><div class="stat-label">Ingresos este mes</div><div class="stat-num" id="st-mes">$0</div></div>
+        <div class="stat-card"><div class="stat-label">Ingresos este anio</div><div class="stat-num" id="st-anio">$0</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+        <div class="stat-card"><div class="stat-label" style="margin-bottom:1rem;">Distribucion por plan</div><div id="chart-planes"></div></div>
+        <div class="stat-card"><div class="stat-label" style="margin-bottom:1rem;">Estado actual</div><div id="chart-estados"></div></div>
+      </div>
+      <div class="stat-card" style="margin-top:12px;">
+        <div class="stat-label" style="margin-bottom:1rem;">Ingresos ultimos 6 meses</div>
+        <div id="chart-ingresos" style="position:relative;height:160px;display:flex;align-items:flex-end;gap:8px;"></div>
+      </div>
+      <div class="stat-card" style="margin-top:12px;">
+        <div class="stat-label" style="margin-bottom:1rem;">Socios con mas pagos registrados</div>
+        <div id="chart-top-socios"></div>
+      </div>
+    </div>
+
+    <!-- Asistencia -->
+    <div id="view-asistencia" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn" onclick="cambiarDia(-1)">&larr;</button>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;min-width:180px;text-align:center;" id="asist-fecha-label"></div>
+          <button class="btn" onclick="cambiarDia(1)">&rarr;</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-left:auto;">
+          <div class="stat-card" style="padding:8px 16px;min-width:100px;text-align:center;"><div class="stat-label">Presentes</div><div class="stat-num" style="font-size:20px;color:var(--accent)" id="asist-presentes">0</div></div>
+          <div class="stat-card" style="padding:8px 16px;min-width:100px;text-align:center;"><div class="stat-label">Ausentes</div><div class="stat-num" style="font-size:20px;color:var(--text3)" id="asist-ausentes">0</div></div>
+        </div>
+      </div>
+      <div style="margin-bottom:1rem;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" onclick="marcarTodos(true)" style="font-size:12px;">Marcar todos presentes</button>
+        <button class="btn" onclick="marcarTodos(false)" style="font-size:12px;">Desmarcar todos</button>
+        <input type="text" id="asist-search" placeholder="Buscar socio..." oninput="renderAsistencia()" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;flex:1;min-width:150px;">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:50%">Socio</th>
+            <th style="width:20%">Plan</th>
+            <th style="width:30%">Asistencia</th>
+          </tr></thead>
+          <tbody id="tbody-asistencia"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal socio -->
+<div class="modal-overlay" id="modal-socio">
+  <div class="modal">
+    <h2 id="modal-title">Nuevo socio</h2>
+    <div class="field-row">
+      <div class="field"><label>Nombre</label><input id="f-nombre" type="text" placeholder="Juan"></div>
+      <div class="field"><label>Apellido</label><input id="f-apellido" type="text" placeholder="Garcia"></div>
+    </div>
+    <div class="field"><label>Telefono</label><input id="f-tel" type="text" placeholder="11-1234-5678"></div>
+    <div class="field-row">
+      <div class="field"><label>Suscripcion</label>
+        <select id="f-plan" onchange="autoVenc()">
+          <option value="Dia">Dia</option>
+          <option value="Semana">Semana</option>
+          <option value="Mes">Mes</option>
+        </select>
+      </div>
+      <div class="field"><label>Precio ($)</label><input id="f-precio" type="number" placeholder="35000"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Fecha inicio</label><input id="f-fecha" type="date" onchange="autoVenc()"></div>
+      <div class="field"><label>Vencimiento</label><input id="f-venc" type="date"></div>
+    </div>
+    <div class="field"><label>Notas</label><textarea id="f-notas" rows="2" placeholder="Ej: viene lunes y miercoles, lesion en rodilla..."></textarea></div>
+    <div class="field" style="background:var(--accent-dim);border:1px solid rgba(200,240,74,0.2);border-radius:var(--radius);padding:12px 14px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="f-pago" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;">
+        <label for="f-pago" style="font-size:13px;color:var(--text);text-transform:none;letter-spacing:0;cursor:pointer;margin:0;">Pago al inscribirse</label>
+      </div>
+      <div id="f-pago-extra" style="display:none;margin-top:10px;">
+        <div class="field-row" style="margin:0;">
+          <div class="field" style="margin:0;"><label>Monto pagado ($)</label><input id="f-pago-monto" type="number" placeholder="35000"></div>
+          <div class="field" style="margin:0;"><label>Fecha de pago</label><input id="f-pago-fecha" type="date"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="btn-guardar-socio" onclick="saveSocio()">Guardar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-socio')">Cancelar</button>
+      <button class="btn btn-ghost" id="btn-ver-pagos" style="display:none;margin-left:auto;" onclick="abrirHistSocio()">Ver historial</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal historial -->
+<div class="modal-overlay" id="modal-hist">
+  <div class="modal">
+    <h2 id="hist-title">Historial de pagos</h2>
+    <div id="loading-hist" class="loading-row" style="display:none;"><div class="spinner"></div>Cargando...</div>
+    <div class="hist-list" id="hist-list"><div class="empty">Sin pagos registrados</div></div>
+    <div class="field-row">
+      <div class="field"><label>Monto ($)</label><input id="h-monto" type="number" placeholder="35000"></div>
+      <div class="field"><label>Fecha de pago</label><input id="h-fecha" type="date"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="btn-add-pago" onclick="addPago()">+ Registrar pago</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-hist')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal pago rapido -->
+<div class="modal-overlay" id="modal-pago-rapido">
+  <div class="modal">
+    <h2>Registrar pago</h2>
+    <div class="field"><label>Socio</label><select id="pr-socio"></select></div>
+    <div class="field-row">
+      <div class="field"><label>Monto ($)</label><input id="pr-monto" type="number" placeholder="35000"></div>
+      <div class="field"><label>Fecha de pago</label><input id="pr-fecha" type="date"></div>
+    </div>
+    <div class="field"><label>Nuevo vencimiento (opcional)</label><input id="pr-venc" type="date"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="btn-guardar-pago-rap" onclick="savePagoRapido()">Guardar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-pago-rapido')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal editar pago -->
+<div class="modal-overlay" id="modal-editar-pago">
+  <div class="modal">
+    <h2>Editar pago</h2>
+    <div class="field-row">
+      <div class="field"><label>Monto ($)</label><input id="ep-monto" type="number" placeholder="35000"></div>
+      <div class="field"><label>Fecha de pago</label><input id="ep-fecha" type="date"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Nuevo vencimiento</label><input id="ep-venc" type="date"></div>
+      <div class="field"><label>Plan</label>
+        <select id="ep-plan" onchange="autoVencPago()">
+          <option value="Dia">Dia</option>
+          <option value="Semana">Semana</option>
+          <option value="Mes">Mes</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="btn-guardar-ep" onclick="guardarEdicionPago()">Guardar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-editar-pago')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  var API_KEY = 'patBZlyKEB8GuRLpG.ef1d684e17de16f8192bb6b43368ed8859b6286d2996ed4ebe19d025883b8d92';
+  var BASE    = 'appvBGUGQgezRFnaE';
+  var T_SOC   = 'tblp50VDdK0zxIPJw';
+  var T_PAG   = 'tbly47mIaBng11MWv';
+
+  var F = {
+    nombre:'fldO2XwQh7A5bBqrO', apellido:'fldLNjb5fY536YVm0',
+    contacto:'fldSTgotliCXvs08n', suscrip:'fld0HKebUp10WKauz',
+    precio:'fldQ9DGK5t34bZHhK', fecha:'fld3TIMcKePMZrZMV',
+    notas:'fldfM1mVnfQ4hfjyd',
+  };
+  var FP = {
+    socioId:'fldV69XPWzXcbNIr2', monto:'fldWBqI5IJUDRcgoo',
+    fechaPago:'fldHtvbpqMHUnOD62', vencNuevo:'fldAXcfD2ksP7Ds8x',
+    periodo:'fldGWgO8aGvOYFaMp',
+  };
+  var PLAN_DIAS    = {'Dia':1,'Semana':7,'Mes':30};
+  var PLAN_PRECIOS = {'Dia':3000,'Semana':10000,'Mes':35000};
+  var FNAME = {
+    'Nombre':F.nombre,'Apellido':F.apellido,'Contacto':F.contacto,
+    'Suscripcion':F.suscrip,'Precio':F.precio,'Fecha':F.fecha,'Notas':F.notas,
+    'Socio ID':FP.socioId,'Monto':FP.monto,'Fecha pago':FP.fechaPago,
+    'Vencimiento nuevo':FP.vencNuevo,'Periodo':FP.periodo,
+  };
+
+  var socios = [], pagos = [], editId = null, histSocioId = null, tabSocios = 'todos';
+  var mesCursor = new Date(), diaCursor = new Date(), editPagoId = null;
+
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function addDias(f,d){ var dt=new Date(f); dt.setDate(dt.getDate()+d); return dt.toISOString().slice(0,10); }
+  function diffDias(a,b){ return Math.round((new Date(a)-new Date(b))/86400000); }
+  function fmtDate(d){ if(!d)return'-'; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+  function fmtMoney(n){ return '$'+Math.round(n).toLocaleString('es-AR'); }
+  function initials(n){ return (n||'').split(' ').slice(0,2).map(function(x){return x[0]||'';}).join('').toUpperCase(); }
+  function getNombre(s){ return ((s.fields[F.nombre]||'')+' '+(s.fields[F.apellido]||'')).trim(); }
+  function getPlan(s){ var v=s.fields[F.suscrip]; return (v&&typeof v==='object')?v.name:(v||''); }
+  function getEstado(s){
+    var venc=s.fields[F.fecha]; if(!venc)return 'activo';
+    var d=diffDias(venc,today());
+    return d<0?'vencido':d<=7?'vence':'activo';
+  }
+  function pagoEsteMes(s){
+    return pagos.some(function(p){ return p.fields[FP.socioId]===s.id; });
+  }
+
+  function normalizeRec(rec){
+    var raw=rec.fields||{};
+    var out={};
+    for(var k in raw){
+      out[k.startsWith('fld')?k:(FNAME[k]||k)]=raw[k];
+    }
+    return Object.assign({},rec,{fields:out});
+  }
+
+  async function api(path,method,body){
+    method=method||'GET';
+    var opts={method:method,headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'}};
+    if(body)opts.body=JSON.stringify(body);
+    var res=await fetch('https://api.airtable.com/v0/'+BASE+'/'+path,opts);
+    if(!res.ok){var e=await res.json().catch(function(){return{};});throw new Error(e.error&&e.error.message?e.error.message:'Error '+res.status);}
+    var data=await res.json();
+    if(data.records)data.records=data.records.map(normalizeRec);
+    if(data.record)data.record=normalizeRec(data.record);
+    return data;
+  }
+
+  async function fetchAll(tableId){
+    var all=[],offset=null;
+    do{
+      var url=tableId+'?pageSize=100';
+      if(offset)url+='&offset='+encodeURIComponent(offset);
+      var d=await api(url);
+      all=all.concat(d.records||[]);
+      offset=d.offset||null;
+    }while(offset);
+    return all;
+  }
+
+  async function cargarSocios(){
+    document.getElementById('loading-socios').style.display='flex';
+    document.getElementById('tabla-wrap').style.display='none';
+    setSyncStatus('Sincronizando...');
+    try{
+      socios=await fetchAll(T_SOC);
+      setSyncStatus('Sincronizado');
+      renderTabla();renderStats();renderAlerts();renderDeudores();
+    }catch(e){setSyncStatus('Sin conexion');showToast('Error al cargar socios: '+e.message);}
+    document.getElementById('loading-socios').style.display='none';
+    document.getElementById('tabla-wrap').style.display='block';
+  }
+
+  async function cargarPagos(silencioso){
+    if(!silencioso){document.getElementById('loading-pagos').style.display='flex';}
+    try{
+      pagos=await fetchAll(T_PAG);
+      if(!silencioso){renderPagos();}
+      renderStats();
+    }catch(e){showToast('Error al cargar pagos: '+e.message);}
+    if(!silencioso){document.getElementById('loading-pagos').style.display='none';}
+  }
+
+  async function init(){
+    var sec=document.getElementById('deudores-section');
+    if(sec)sec.style.display='none';
+    await cargarPagos(true);
+    await cargarSocios();
+    if(sec)sec.style.display='block';
+    renderDeudores();
+  }
+
+  function renderStats(){
+    var activos=socios.filter(function(s){return getEstado(s)==='activo';}).length;
+    var vencidos=socios.filter(function(s){return getEstado(s)==='vencido';}).length;
+    var vencenP=socios.filter(function(s){return getEstado(s)==='vence';}).length;
+    var mes=new Date();
+    var ing=pagos.filter(function(p){
+      var f=p.fields[FP.fechaPago]; if(!f)return false;
+      var d=new Date(f);
+      return d.getMonth()===mes.getMonth()&&d.getFullYear()===mes.getFullYear();
+    }).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
+    document.getElementById('stats-row').innerHTML=
+      '<div class="stat-card"><div class="stat-label">Total socios</div><div class="stat-num">'+socios.length+'</div></div>'+
+      '<div class="stat-card"><div class="stat-label">Activos</div><div class="stat-num" style="color:var(--accent)">'+activos+'</div></div>'+
+      '<div class="stat-card"><div class="stat-label">Vencidos</div><div class="stat-num" style="color:var(--red)">'+vencidos+'</div><div class="stat-sub">'+vencenP+' vencen pronto</div></div>'+
+      '<div class="stat-card"><div class="stat-label">Ingresos del mes</div><div class="stat-num">'+fmtMoney(ing)+'</div></div>';
+  }
+
+  function renderAlerts(){
+    var alertas=socios.filter(function(s){var e=getEstado(s);return e==='vence'||e==='vencido';})
+      .sort(function(a,b){return new Date(a.fields[F.fecha])-new Date(b.fields[F.fecha]);});
+    if(!alertas.length){document.getElementById('alerts-area').innerHTML='';return;}
+    var html='<div class="alerts-box"><div class="alerts-title">Alertas de vencimiento ('+alertas.length+')</div>';
+    alertas.forEach(function(s){
+      var d=diffDias(s.fields[F.fecha],today());
+      var txt=d<0?'Vencio hace '+Math.abs(d)+' dia'+(Math.abs(d)!==1?'s':''):'Vence en '+d+' dia'+(d!==1?'s':'');
+      html+='<div class="alert-row"><span>'+getNombre(s)+'</span><span>'+txt+' - '+fmtDate(s.fields[F.fecha])+'</span></div>';
+    });
+    html+='</div>';
+    document.getElementById('alerts-area').innerHTML=html;
+  }
+
+  function setTabSocios(tab,btn){
+    tabSocios=tab;
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    renderTabla();
+  }
+
+  function renderTabla(){
+    var search=(document.getElementById('search').value||'').toLowerCase();
+    var fplan=document.getElementById('filter-plan').value;
+    var list=socios.filter(function(s){
+      var matchS=!search||getNombre(s).toLowerCase().includes(search)||(s.fields[F.contacto]||'').includes(search);
+      var plan=getPlan(s);
+      var matchP=!fplan||plan===fplan;
+      var est=getEstado(s);
+      var matchT=tabSocios==='todos'||(tabSocios==='activos'&&(est==='activo'||est==='vence'))||(tabSocios==='vencidos'&&est==='vencido');
+      return matchS&&matchP&&matchT;
+    });
+    var tbody=document.getElementById('tbody-socios');
+    if(!list.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No se encontraron socios</div></td></tr>';return;}
+    tbody.innerHTML=list.map(function(s){
+      var nombre=getNombre(s),plan=getPlan(s)||'-',est=getEstado(s);
+      var estB=est==='activo'?'<span class="badge badge-activo">Activo</span>':est==='vence'?'<span class="badge badge-vence">Vence pronto</span>':'<span class="badge badge-vencido">Vencido</span>';
+      var pagoB=pagoEsteMes(s)?'<span class="badge badge-activo">Pago</span>':'<span class="badge badge-vencido">Debe</span>';
+      var planClass='plan-'+(plan||'Mes');
+      var notaIcon=s.fields[F.notas]?' <span title="'+s.fields[F.notas]+'" style="font-size:11px;color:var(--amber);">nota</span>':'';
+      return '<tr>'+
+        '<td><div class="name-cell"><div class="avatar">'+initials(nombre)+'</div><div><div class="name-main">'+nombre+notaIcon+'</div><div class="name-sub">'+(s.fields[F.contacto]||'')+'</div></div></div></td>'+
+        '<td><span class="badge '+planClass+'">'+plan+'</span></td>'+
+        '<td>'+fmtMoney(s.fields[F.precio]||0)+'</td>'+
+        '<td>'+fmtDate(s.fields[F.fecha])+'</td>'+
+        '<td>'+estB+'</td>'+
+        '<td>'+pagoB+'</td>'+
+        '<td><div class="action-row">'+
+          '<button class="btn btn-sm btn-ghost" onclick="editSocio(\''+s.id+'\')">Editar</button>'+
+          '<button class="btn btn-sm btn-ghost" onclick="openHistById(\''+s.id+'\')">Pagos</button>'+
+          '<button class="btn btn-sm btn-danger" onclick="borrarSocio(\''+s.id+'\')">Borrar</button>'+
+        '</div></td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  function renderPagos(){
+    var search=(document.getElementById('search-pago').value||'').toLowerCase();
+    var list=pagos.slice().reverse().filter(function(p){
+      var s=socios.find(function(x){return x.id===p.fields[FP.socioId];});
+      if(!s)return false;
+      return !search||getNombre(s).toLowerCase().includes(search);
+    });
+    var tbody=document.getElementById('tbody-pagos');
+    if(!list.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty">No hay pagos registrados</div></td></tr>';return;}
+    tbody.innerHTML=list.map(function(p){
+      var s=socios.find(function(x){return x.id===p.fields[FP.socioId];});
+      var nombre=s?getNombre(s):'Desconocido';
+      var plan=s?getPlan(s):'-';
+      var periodo=p.fields[FP.periodo]||'';
+      var periodoFmt=periodo?periodo.split(' al ').map(fmtDate).join(' al '):'-';
+      return '<tr>'+
+        '<td><div class="name-cell"><div class="avatar">'+initials(nombre)+'</div><span>'+nombre+'</span></div></td>'+
+        '<td><span class="badge plan-'+(plan||'Mes')+'">'+plan+'</span></td>'+
+        '<td style="color:var(--accent);font-weight:500">'+fmtMoney(p.fields[FP.monto]||0)+'</td>'+
+        '<td>'+fmtDate(p.fields[FP.fechaPago])+'</td>'+
+        '<td style="color:var(--text3);font-size:12px">'+periodoFmt+'</td>'+
+        '<td><div class="action-row">'+
+          '<button class="btn btn-sm btn-ghost" onclick="editarPago(\''+p.id+'\')">Editar</button>'+
+          '<button class="btn btn-sm btn-danger" onclick="borrarPago(\''+p.id+'\')">x</button>'+
+        '</div></td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  function renderDeudores(){
+    var deudores=socios.filter(function(s){return !pagoEsteMes(s);});
+    var cnt=document.getElementById('deudores-count');
+    if(cnt)cnt.textContent=deudores.length;
+    var tbody=document.getElementById('tbody-deudores');
+    if(!tbody)return;
+    if(!deudores.length){
+      tbody.innerHTML='<tr><td colspan="5"><div class="empty" style="color:var(--green)">Todos pagaron este mes</div></td></tr>';
+      return;
+    }
+    tbody.innerHTML=deudores.map(function(s){
+      var nombre=getNombre(s),plan=getPlan(s)||'-';
+      return '<tr>'+
+        '<td><div class="name-cell"><div class="avatar" style="background:var(--red-dim);color:var(--red);border-color:rgba(255,85,85,0.2)">'+initials(nombre)+'</div>'+
+        '<div><div class="name-main">'+nombre+'</div><div class="name-sub">'+(s.fields[F.contacto]||'')+'</div></div></div></td>'+
+        '<td><span class="badge plan-'+(plan||'Mes')+'">'+plan+'</span></td>'+
+        '<td>'+fmtMoney(s.fields[F.precio]||0)+'</td>'+
+        '<td>'+fmtDate(s.fields[F.fecha])+'</td>'+
+        '<td><button class="btn btn-sm btn-ghost" onclick="openHistById(\''+s.id+'\')">Registrar pago</button></td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  function renderEstadisticas(){
+    var now=new Date(),mes=now.getMonth(),anio=now.getFullYear();
+    document.getElementById('st-total').textContent=socios.length;
+    var ingMes=pagos.filter(function(p){var f=p.fields[FP.fechaPago];if(!f)return false;var d=new Date(f);return d.getMonth()===mes&&d.getFullYear()===anio;}).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
+    var ingAnio=pagos.filter(function(p){var f=p.fields[FP.fechaPago];if(!f)return false;return new Date(f).getFullYear()===anio;}).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
+    document.getElementById('st-mes').textContent=fmtMoney(ingMes);
+    document.getElementById('st-anio').textContent=fmtMoney(ingAnio);
+    var planes={'Dia':0,'Semana':0,'Mes':0};
+    socios.forEach(function(s){var p=getPlan(s);if(planes[p]!==undefined)planes[p]++;else planes['Mes']++;});
+    var totalP=socios.length||1;
+    var colP={'Dia':'var(--blue)','Semana':'var(--purple)','Mes':'var(--accent)'};
+    document.getElementById('chart-planes').innerHTML=Object.keys(planes).map(function(plan){
+      var cant=planes[plan];
+      return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:'+colP[plan]+'">'+plan+'</span><span style="color:var(--text2)">'+cant+' socio'+(cant!==1?'s':'')+'</span></div><div style="background:var(--surface2);border-radius:99px;height:6px;"><div style="background:'+colP[plan]+';width:'+Math.round(cant/totalP*100)+'%;height:6px;border-radius:99px;"></div></div></div>';
+    }).join('');
+    var activos=socios.filter(function(s){return getEstado(s)==='activo';}).length;
+    var vence=socios.filter(function(s){return getEstado(s)==='vence';}).length;
+    var vencidos=socios.filter(function(s){return getEstado(s)==='vencido';}).length;
+    var estados=[['Activos',activos,'var(--accent)'],['Vencen pronto',vence,'var(--amber)'],['Vencidos',vencidos,'var(--red)']];
+    document.getElementById('chart-estados').innerHTML=estados.map(function(e){
+      return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:'+e[2]+'">'+e[0]+'</span><span style="color:var(--text2)">'+e[1]+'</span></div><div style="background:var(--surface2);border-radius:99px;height:6px;"><div style="background:'+e[2]+';width:'+Math.round(e[1]/(socios.length||1)*100)+'%;height:6px;border-radius:99px;"></div></div></div>';
+    }).join('');
+    var meses6=[];
+    for(var i=5;i>=0;i--){
+      var dt=new Date(anio,mes-i,1);
+      var m=dt.getMonth(),y=dt.getFullYear();
+      var total=pagos.filter(function(p){var f=p.fields[FP.fechaPago];if(!f)return false;var pd=new Date(f);return pd.getMonth()===m&&pd.getFullYear()===y;}).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
+      var nombres=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      meses6.push({label:nombres[m],total:total});
+    }
+    var maxIng=Math.max.apply(null,meses6.map(function(m){return m.total;}));maxIng=maxIng||1;
+    document.getElementById('chart-ingresos').innerHTML=meses6.map(function(m){
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="font-size:11px;color:var(--text3)">'+( m.total>0?fmtMoney(m.total):'')+'</div><div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:'+Math.round(m.total/maxIng*120)+'px;min-height:'+(m.total>0?4:0)+'px;"></div><div style="font-size:11px;color:var(--text2)">'+m.label+'</div></div>';
+    }).join('');
+    var conteo={};
+    pagos.forEach(function(p){var sid=p.fields[FP.socioId];if(!sid)return;conteo[sid]=(conteo[sid]||0)+1;});
+    var top=Object.keys(conteo).sort(function(a,b){return conteo[b]-conteo[a];}).slice(0,5);
+    if(!top.length){document.getElementById('chart-top-socios').innerHTML='<div style="color:var(--text3);font-size:13px">Sin datos de pagos todavia</div>';return;}
+    var maxP=conteo[top[0]]||1;
+    document.getElementById('chart-top-socios').innerHTML=top.map(function(sid){
+      var s=socios.find(function(x){return x.id===sid;});
+      var nombre=s?getNombre(s):'Desconocido';
+      var cant=conteo[sid];
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="font-size:13px;min-width:140px;color:var(--text)">'+nombre+'</div><div style="flex:1;background:var(--surface2);border-radius:99px;height:6px;"><div style="background:var(--accent);width:'+Math.round(cant/maxP*100)+'%;height:6px;border-radius:99px;"></div></div><div style="font-size:12px;color:var(--text2);min-width:60px;text-align:right">'+cant+' pago'+(cant!==1?'s':'')+'</div></div>';
+    }).join('');
+  }
+
+  function nombreMes(d){var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];return meses[d.getMonth()]+' '+d.getFullYear();}
+
+  function cambiarMes(delta){mesCursor=new Date(mesCursor.getFullYear(),mesCursor.getMonth()+delta,1);renderResumen();}
+
+  function renderResumen(){
+    var m=mesCursor.getMonth(),y=mesCursor.getFullYear();
+    document.getElementById('resumen-mes-label').textContent=nombreMes(mesCursor);
+    var filas=socios.map(function(s){
+      var pagosMes=pagos.filter(function(p){
+        if(p.fields[FP.socioId]!==s.id)return false;
+        var f=p.fields[FP.fechaPago];if(!f)return false;
+        var d=new Date(f);return d.getMonth()===m&&d.getFullYear()===y;
+      });
+      var pago=pagosMes.length?pagosMes[pagosMes.length-1]:null;
+      return{socio:s,pago:pago};
+    });
+    var pagaron=filas.filter(function(f){return f.pago;}).length;
+    var deben=filas.filter(function(f){return !f.pago;}).length;
+    var total=filas.filter(function(f){return f.pago;}).reduce(function(a,f){return a+Number(f.pago.fields[FP.monto]||0);},0);
+    var pendiente=filas.filter(function(f){return !f.pago;}).reduce(function(a,f){return a+Number(f.socio.fields[F.precio]||0);},0);
+    document.getElementById('resumen-pagaron').textContent=pagaron;
+    document.getElementById('resumen-deben').textContent=deben;
+    document.getElementById('resumen-total').textContent=fmtMoney(total);
+    document.getElementById('resumen-pendiente').textContent=fmtMoney(pendiente);
+    var tbody=document.getElementById('tbody-resumen');
+    if(!filas.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No hay socios</div></td></tr>';return;}
+    tbody.innerHTML=filas.map(function(row){
+      var s=row.socio,p=row.pago;
+      var nombre=getNombre(s),plan=getPlan(s)||'-';
+      var pagoB=p?'<span class="badge badge-activo">Pago</span>':'<span class="badge badge-vencido">Debe</span>';
+      var fechaPago=p?fmtDate(p.fields[FP.fechaPago]):'-';
+      var vencPago=p?fmtDate(p.fields[FP.vencNuevo]||''):'-';
+      var monto=p?fmtMoney(p.fields[FP.monto]||0):'<span style="color:var(--text3)">'+fmtMoney(s.fields[F.precio]||0)+'</span>';
+      var accion=p?'<button class="btn btn-sm btn-ghost" onclick="editarPago(\''+p.id+'\')">Editar</button>':'<button class="btn btn-sm" style="background:var(--red-dim);color:var(--red);border:none;" onclick="openHistById(\''+s.id+'\')">Cobrar</button>';
+      return '<tr style="'+(p?'':'opacity:0.75;')+'">'+
+        '<td><div class="name-cell"><div class="avatar" style="'+(p?'':'background:var(--red-dim);color:var(--red);border-color:rgba(255,85,85,0.2)')+'">'+initials(nombre)+'</div><div><div class="name-main">'+nombre+'</div><div class="name-sub">'+(s.fields[F.contacto]||'')+'</div></div></div></td>'+
+        '<td><span class="badge plan-'+(plan||'Mes')+'">'+plan+'</span></td>'+
+        '<td>'+monto+'</td>'+
+        '<td>'+fechaPago+'</td>'+
+        '<td>'+vencPago+'</td>'+
+        '<td>'+pagoB+'</td>'+
+        '<td>'+accion+'</td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  function fechaKey(d){return d.toISOString().slice(0,10);}
+  function nombreDia(d){var dias=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];return dias[d.getDay()]+' '+d.getDate()+' de '+meses[d.getMonth()]+' '+d.getFullYear();}
+  function cambiarDia(delta){diaCursor=new Date(diaCursor);diaCursor.setDate(diaCursor.getDate()+delta);renderAsistencia();}
+  function getAsistencia(fecha){try{var r=localStorage.getItem('asist_'+fecha);return r?JSON.parse(r):{};}catch(e){return{};}}
+  function setAsistencia(fecha,data){localStorage.setItem('asist_'+fecha,JSON.stringify(data));}
+  function toggleAsistencia(socioId){var fecha=fechaKey(diaCursor);var data=getAsistencia(fecha);data[socioId]=!data[socioId];setAsistencia(fecha,data);renderAsistencia();}
+  function marcarTodos(presente){var fecha=fechaKey(diaCursor);var data={};socios.forEach(function(s){data[s.id]=presente;});setAsistencia(fecha,data);renderAsistencia();}
+
+  function renderAsistencia(){
+    var fecha=fechaKey(diaCursor);
+    var data=getAsistencia(fecha);
+    var search=(document.getElementById('asist-search')&&document.getElementById('asist-search').value||'').toLowerCase();
+    document.getElementById('asist-fecha-label').textContent=nombreDia(diaCursor);
+    var lista=socios.filter(function(s){return !search||getNombre(s).toLowerCase().includes(search);});
+    var presentes=lista.filter(function(s){return data[s.id];}).length;
+    document.getElementById('asist-presentes').textContent=presentes;
+    document.getElementById('asist-ausentes').textContent=lista.length-presentes;
+    var tbody=document.getElementById('tbody-asistencia');
+    if(!lista.length){tbody.innerHTML='<tr><td colspan="3"><div class="empty">No hay socios</div></td></tr>';return;}
+    tbody.innerHTML=lista.map(function(s){
+      var nombre=getNombre(s),plan=getPlan(s)||'-',present=!!data[s.id];
+      return '<tr style="cursor:pointer;" onclick="toggleAsistencia(\''+s.id+'\')">'+
+        '<td><div class="name-cell"><div class="avatar" style="'+(present?'background:var(--accent-dim);color:var(--accent);border-color:rgba(200,240,74,0.3)':'background:var(--surface2);color:var(--text3);border-color:transparent')+'">'+initials(nombre)+'</div><div><div class="name-main">'+nombre+'</div><div class="name-sub">'+(s.fields[F.contacto]||'')+'</div></div></div></td>'+
+        '<td><span class="badge plan-'+(plan||'Mes')+'">'+plan+'</span></td>'+
+        '<td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:50%;border:2px solid '+(present?'var(--accent)':'var(--border2)')+';background:'+(present?'var(--accent-dim)':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:14px;">'+(present?'v':'')+'</div><span style="font-size:13px;color:'+(present?'var(--accent)':'var(--text3)')+';">'+(present?'Presente':'Ausente')+'</span></div></td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  function setView(v,btn){
+    document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    var views=['socios','pagos','resumen','stats','asistencia'];
+    views.forEach(function(id){
+      var el=document.getElementById('view-'+id);
+      if(el)el.style.display=id===v?'block':'none';
+    });
+    var titles={socios:'Socios',pagos:'Historial de pagos',resumen:'Resumen mensual',stats:'Estadisticas',asistencia:'Asistencia'};
+    document.getElementById('page-title').textContent=titles[v]||'';
+    document.getElementById('btn-nuevo').style.display=v==='socios'?'inline-flex':'none';
+    if(v==='pagos'&&!pagos.length)cargarPagos();
+    else if(v==='pagos')renderPagos();
+    if(v==='resumen'){mesCursor=new Date();renderResumen();}
+    if(v==='stats')renderEstadisticas();
+    if(v==='asistencia'){diaCursor=new Date();renderAsistencia();}
+  }
+
+  function autoVenc(){
+    var i=document.getElementById('f-fecha').value,p=document.getElementById('f-plan').value;
+    if(i)document.getElementById('f-venc').value=addDias(i,PLAN_DIAS[p]||30);
+    var precioAuto=PLAN_PRECIOS[p];
+    if(precioAuto)document.getElementById('f-precio').value=precioAuto;
+    if(document.getElementById('f-pago')&&document.getElementById('f-pago').checked){
+      document.getElementById('f-pago-monto').value=precioAuto||document.getElementById('f-precio').value||'';
+      document.getElementById('f-pago-fecha').value=i||today();
+    }
+  }
+
+  function openModal(){
+    editId=null;
+    document.getElementById('modal-title').textContent='Nuevo socio';
+    ['f-nombre','f-apellido','f-tel','f-precio','f-notas'].forEach(function(id){document.getElementById(id).value='';});
+    document.getElementById('f-plan').value='Mes';
+    document.getElementById('f-precio').value=PLAN_PRECIOS['Mes'];
+    document.getElementById('f-fecha').value=today();
+    document.getElementById('f-venc').value=addDias(today(),30);
+    document.getElementById('f-pago').checked=false;
+    document.getElementById('f-pago-extra').style.display='none';
+    document.getElementById('f-pago-monto').value='';
+    document.getElementById('f-pago-fecha').value=today();
+    document.getElementById('btn-ver-pagos').style.display='none';
+    document.getElementById('modal-socio').classList.add('open');
+  }
+
+  document.addEventListener('DOMContentLoaded',function(){
+    document.getElementById('f-pago').addEventListener('change',function(){
+      document.getElementById('f-pago-extra').style.display=this.checked?'block':'none';
+      if(this.checked&&!document.getElementById('f-pago-monto').value){
+        document.getElementById('f-pago-monto').value=document.getElementById('f-precio').value||'';
+        document.getElementById('f-pago-fecha').value=document.getElementById('f-fecha').value||today();
+      }
+    });
+  });
+
+  function editSocio(id){
+    var s=socios.find(function(x){return x.id===id;});if(!s)return;
+    editId=id;
+    document.getElementById('modal-title').textContent='Editar socio';
+    document.getElementById('f-nombre').value=s.fields[F.nombre]||'';
+    document.getElementById('f-apellido').value=s.fields[F.apellido]||'';
+    document.getElementById('f-tel').value=s.fields[F.contacto]||'';
+    document.getElementById('f-plan').value=getPlan(s)||'Mes';
+    document.getElementById('f-precio').value=s.fields[F.precio]||'';
+    document.getElementById('f-fecha').value=s.fields[F.fecha]||today();
+    document.getElementById('f-venc').value=s.fields[F.fecha]||'';
+    document.getElementById('f-notas').value=s.fields[F.notas]||'';
+    document.getElementById('f-pago').checked=false;
+    document.getElementById('f-pago-extra').style.display='none';
+    document.getElementById('btn-ver-pagos').style.display='inline-flex';
+    document.getElementById('modal-socio').classList.add('open');
+  }
+
+  async function saveSocio(){
+    var nombre=document.getElementById('f-nombre').value.trim();
+    if(!nombre){showToast('Ingresa el nombre');return;}
+    var pagoCheck=document.getElementById('f-pago').checked;
+    var pagoMonto=Number(document.getElementById('f-pago-monto').value)||0;
+    var pagoFecha=document.getElementById('f-pago-fecha').value||today();
+    var fields={};
+    fields[F.nombre]=nombre;
+    fields[F.apellido]=document.getElementById('f-apellido').value.trim();
+    fields[F.contacto]=document.getElementById('f-tel').value.trim();
+    fields[F.suscrip]=document.getElementById('f-plan').value;
+    fields[F.precio]=Number(document.getElementById('f-precio').value)||0;
+    fields[F.fecha]=document.getElementById('f-venc').value||document.getElementById('f-fecha').value;
+    fields[F.notas]=document.getElementById('f-notas').value.trim();
+    btnLoad('btn-guardar-socio','Guardando...');
+    try{
+      var nuevoRecord=null;
+      if(editId){
+        var d=await api(T_SOC,'PATCH',{records:[{id:editId,fields:fields}]});
+        var i=socios.findIndex(function(s){return s.id===editId;});if(i>-1)socios[i]=d.records[0];
+        showToast('Socio actualizado');
+      }else{
+        var d2=await api(T_SOC,'POST',{records:[{fields:fields}]});
+        nuevoRecord=d2.records[0];
+        socios.unshift(nuevoRecord);
+        showToast('Socio agregado');
+      }
+      closeModal('modal-socio');
+      if(!editId&&pagoCheck&&pagoMonto&&nuevoRecord){
+        var socioId=nuevoRecord.id;
+        var plan=nuevoRecord.fields[F.suscrip]&&typeof nuevoRecord.fields[F.suscrip]==='object'?nuevoRecord.fields[F.suscrip].name:(nuevoRecord.fields[F.suscrip]||'Mes');
+        var venc=nuevoRecord.fields[F.fecha]||addDias(pagoFecha,PLAN_DIAS[plan]||30);
+        var periodo=pagoFecha+' al '+venc;
+        try{
+          var dp=await api(T_PAG,'POST',{records:[{fields:{[FP.socioId]:socioId,[FP.monto]:pagoMonto,[FP.fechaPago]:pagoFecha,[FP.vencNuevo]:venc,[FP.periodo]:periodo}}]});
+          pagos.push(dp.records[0]);
+          showToast('Socio y pago registrados');
+        }catch(e){showToast('Socio guardado, error en pago: '+e.message);}
+      }
+      renderTabla();renderStats();renderAlerts();renderDeudores();
+    }catch(e){showToast('Error al guardar: '+e.message);}
+    btnLoad('btn-guardar-socio','Guardar',false);
+  }
+
+  async function borrarSocio(id){
+    if(!confirm('Borrar este socio?'))return;
+    try{await api(T_SOC+'/'+id,'DELETE');socios=socios.filter(function(s){return s.id!==id;});showToast('Socio eliminado');renderTabla();renderStats();renderAlerts();renderDeudores();}
+    catch(e){showToast('Error al eliminar');}
+  }
+
+  function abrirHistSocio(){closeModal('modal-socio');openHistById(editId);}
+
+  async function openHistById(id){
+    histSocioId=id;
+    var s=socios.find(function(x){return x.id===id;});if(!s)return;
+    document.getElementById('hist-title').textContent=getNombre(s)+' - Pagos';
+    document.getElementById('h-monto').value=s.fields[F.precio]||'';
+    document.getElementById('h-fecha').value=today();
+    document.getElementById('modal-hist').classList.add('open');
+    document.getElementById('loading-hist').style.display='flex';
+    document.getElementById('hist-list').innerHTML='';
+    try{if(!pagos.length)pagos=await fetchAll(T_PAG);renderHistModal();}
+    catch(e){showToast('Error al cargar historial');}
+    document.getElementById('loading-hist').style.display='none';
+  }
+
+  function renderHistModal(){
+    var list=pagos.filter(function(p){return p.fields[FP.socioId]===histSocioId;})
+      .sort(function(a,b){return new Date(b.fields[FP.fechaPago])-new Date(a.fields[FP.fechaPago]);});
+    if(!list.length){document.getElementById('hist-list').innerHTML='<div class="empty">Sin pagos registrados</div>';return;}
+    document.getElementById('hist-list').innerHTML=list.map(function(p){
+      var periodo=p.fields[FP.periodo]||'';
+      var periodoFmt=periodo?periodo.split(' al ').map(fmtDate).join(' al '):'';
+      return '<div class="hist-item">'+
+        '<span class="hist-fecha">'+fmtDate(p.fields[FP.fechaPago])+'</span>'+
+        '<span class="hist-periodo">'+periodoFmt+'</span>'+
+        '<span class="hist-monto">'+fmtMoney(p.fields[FP.monto]||0)+'</span>'+
+        '<button class="btn btn-sm btn-ghost" onclick="editarPago(\''+p.id+'\')">Editar</button>'+
+        '<button class="btn btn-sm btn-danger" onclick="borrarPago(\''+p.id+'\')">x</button>'+
+      '</div>';
+    }).join('');
+  }
+
+  async function addPago(){
+    var monto=Number(document.getElementById('h-monto').value);
+    var fecha=document.getElementById('h-fecha').value;
+    if(!monto||!fecha){showToast('Completa monto y fecha');return;}
+    var s=socios.find(function(x){return x.id===histSocioId;});
+    var plan=s?getPlan(s):'Mes';
+    var nuevaVenc=addDias(fecha,PLAN_DIAS[plan]||30);
+    var periodo=fecha+' al '+nuevaVenc;
+    btnLoad('btn-add-pago','Guardando...');
+    try{
+      var dp=await api(T_PAG,'POST',{records:[{fields:{[FP.socioId]:histSocioId,[FP.monto]:monto,[FP.fechaPago]:fecha,[FP.vencNuevo]:nuevaVenc,[FP.periodo]:periodo}}]});
+      pagos.push(dp.records[0]);
+      var ds=await api(T_SOC,'PATCH',{records:[{id:histSocioId,fields:{[F.fecha]:nuevaVenc,[F.precio]:monto}}]});
+      var i=socios.findIndex(function(x){return x.id===histSocioId;});if(i>-1)socios[i]=ds.records[0];
+      renderHistModal();renderTabla();renderStats();renderAlerts();renderDeudores();
+      showToast('Pago registrado');
+    }catch(e){showToast('Error: '+e.message);}
+    btnLoad('btn-add-pago','+ Registrar pago',false);
+  }
+
+  async function borrarPago(id){
+    try{await api(T_PAG+'/'+id,'DELETE');pagos=pagos.filter(function(p){return p.id!==id;});renderHistModal();renderPagos();renderStats();renderDeudores();showToast('Pago eliminado');}
+    catch(e){showToast('Error: '+e.message);}
+  }
+
+  function editarPago(id){
+    var p=pagos.find(function(x){return x.id===id;});if(!p)return;
+    editPagoId=id;
+    document.getElementById('ep-monto').value=p.fields[FP.monto]||'';
+    document.getElementById('ep-fecha').value=p.fields[FP.fechaPago]||today();
+    var periodo=p.fields[FP.periodo]||'';
+    document.getElementById('ep-venc').value=periodo?periodo.split(' al ')[1]:'';
+    var s=socios.find(function(x){return x.id===p.fields[FP.socioId];});
+    document.getElementById('ep-plan').value=s?(getPlan(s)||'Mes'):'Mes';
+    document.getElementById('modal-editar-pago').classList.add('open');
+  }
+
+  function autoVencPago(){
+    var fecha=document.getElementById('ep-fecha').value;
+    var plan=document.getElementById('ep-plan').value;
+    if(fecha)document.getElementById('ep-venc').value=addDias(fecha,PLAN_DIAS[plan]||30);
+  }
+
+  async function guardarEdicionPago(){
+    if(!editPagoId)return;
+    var monto=Number(document.getElementById('ep-monto').value);
+    var fecha=document.getElementById('ep-fecha').value;
+    var venc=document.getElementById('ep-venc').value;
+    if(!monto||!fecha){showToast('Completa monto y fecha');return;}
+    var periodo=venc?fecha+' al '+venc:'';
+    btnLoad('btn-guardar-ep','Guardando...');
+    try{
+      var fields={};
+      fields[FP.monto]=monto;fields[FP.fechaPago]=fecha;
+      if(venc){fields[FP.vencNuevo]=venc;}
+      if(periodo)fields[FP.periodo]=periodo;
+      var d=await api(T_PAG,'PATCH',{records:[{id:editPagoId,fields:fields}]});
+      var idx=pagos.findIndex(function(p){return p.id===editPagoId;});
+      if(idx>-1)pagos[idx]=d.records[0];
+      if(venc){
+        var p2=pagos.find(function(x){return x.id===editPagoId;});
+        var socioId=p2&&p2.fields[FP.socioId];
+        if(socioId){
+          var ds=await api(T_SOC,'PATCH',{records:[{id:socioId,fields:{[F.fecha]:venc,[F.precio]:monto}}]});
+          var si=socios.findIndex(function(x){return x.id===socioId;});
+          if(si>-1)socios[si]=ds.records[0];
+        }
+      }
+      closeModal('modal-editar-pago');
+      renderHistModal();renderPagos();renderTabla();renderStats();renderAlerts();renderDeudores();
+      showToast('Pago actualizado');
+    }catch(e){showToast('Error: '+e.message);}
+    btnLoad('btn-guardar-ep','Guardar',false);
+    editPagoId=null;
+  }
+
+  function openPagoRapido(){
+    document.getElementById('pr-socio').innerHTML=socios.map(function(s){return '<option value="'+s.id+'">'+getNombre(s)+'</option>';}).join('');
+    document.getElementById('pr-monto').value='';
+    document.getElementById('pr-fecha').value=today();
+    document.getElementById('pr-venc').value='';
+    document.getElementById('modal-pago-rapido').classList.add('open');
+  }
+
+  async function savePagoRapido(){
+    var sid=document.getElementById('pr-socio').value;
+    var monto=Number(document.getElementById('pr-monto').value);
+    var fecha=document.getElementById('pr-fecha').value;
+    var nvenc=document.getElementById('pr-venc').value;
+    if(!sid||!monto||!fecha){showToast('Completa todos los campos');return;}
+    var s=socios.find(function(x){return x.id===sid;});
+    var plan=s?getPlan(s):'Mes';
+    var venc=nvenc||addDias(fecha,PLAN_DIAS[plan]||30);
+    var periodo=fecha+' al '+venc;
+    btnLoad('btn-guardar-pago-rap','Guardando...');
+    try{
+      var dp=await api(T_PAG,'POST',{records:[{fields:{[FP.socioId]:sid,[FP.monto]:monto,[FP.fechaPago]:fecha,[FP.vencNuevo]:venc,[FP.periodo]:periodo}}]});
+      pagos.push(dp.records[0]);
+      var ds=await api(T_SOC,'PATCH',{records:[{id:sid,fields:{[F.fecha]:venc,[F.precio]:monto}}]});
+      var i=socios.findIndex(function(x){return x.id===sid;});if(i>-1)socios[i]=ds.records[0];
+      closeModal('modal-pago-rapido');
+      renderTabla();renderStats();renderAlerts();renderDeudores();
+      showToast('Pago registrado');
+    }catch(e){showToast('Error: '+e.message);}
+    btnLoad('btn-guardar-pago-rap','Guardar',false);
+  }
+
+  function exportarCSV(){
+    var rows=[['Nombre','Apellido','Telefono','Plan','Precio','Vencimiento','Estado','Notas']];
+    socios.forEach(function(s){rows.push([s.fields[F.nombre]||'',s.fields[F.apellido]||'',s.fields[F.contacto]||'',getPlan(s),s.fields[F.precio]||0,s.fields[F.fecha]||'',getEstado(s),s.fields[F.notas]||'']);});
+    var csv=rows.map(function(r){return r.map(function(c){return '"'+c+'"';}).join(',');}).join('\n');
+    var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='socios-gym.csv';a.click();
+  }
+
+  function closeModal(id){document.getElementById(id).classList.remove('open');}
+  function setSyncStatus(t){document.getElementById('sync-status').textContent=t;}
+  function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2800);}
+  function btnLoad(id,txt,loading){loading=loading===undefined?true:loading;var b=document.getElementById(id);if(!b)return;b.disabled=loading;b.textContent=txt;}
+
+  document.querySelectorAll('.modal-overlay').forEach(function(el){
+    el.addEventListener('click',function(e){if(e.target===el)el.classList.remove('open');});
+  });
+
+  init();
+</script>
+</body>
+</html>
