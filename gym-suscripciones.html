@@ -471,7 +471,7 @@
   function doLogin(){
     var user=document.getElementById('login-user').value.trim();
     var pass=document.getElementById('login-pass').value;
-    var found=USUARIOS.find(function(u){return u.usuario===user.toLowerCase().trim()&&u.pass===pass;});
+    var found=USUARIOS.find(function(u){return u.usuario===user.toLowerCase().trim()&&u.pass===pass.trim();});
     if(!found){
       document.getElementById('login-error').style.display='block';
       return;
