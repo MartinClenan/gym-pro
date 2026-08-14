@@ -128,13 +128,26 @@
     <div class="login-sub">Sistema de gestion del gimnasio</div>
     <div class="login-field">
       <label>Usuario</label>
-      <input type="text" id="login-user" placeholder="Tu nombre de usuario" autocomplete="username">
+      <input type="text" id="login-user" placeholder="martin o danilo" autocomplete="off">
     </div>
     <div class="login-field">
       <label>Contrasena</label>
-      <input type="password" id="login-pass" placeholder="Tu contrasena" autocomplete="current-password">
+      <input type="password" id="login-pass" placeholder="Tu contrasena" autocomplete="off">
     </div>
-    <button class="login-btn" id="login-btn">Ingresar</button>
+    <button class="login-btn" onclick="(function(){
+      var u=document.getElementById('login-user').value.trim().toLowerCase();
+      var p=document.getElementById('login-pass').value.trim();
+      var err=document.getElementById('login-error');
+      var usuarios=[{u:'martin',p:'11031999',n:'Martin Clenan',i:'MC'},{u:'danilo',p:'20112002',n:'Danilo Rivero',i:'DR'}];
+      var found=usuarios.find(function(x){return x.u===u&&x.p===p;});
+      if(!found){err.style.display='block';return;}
+      err.style.display='none';
+      localStorage.setItem('gym_session',JSON.stringify({usuario:found.n,rol:'admin',iniciales:found.i}));
+      document.getElementById('login-overlay').style.display='none';
+      document.getElementById('user-name').textContent=found.n;
+      document.getElementById('user-avatar').textContent=found.i;
+      init();
+    })()">Ingresar</button>
     <div class="login-error" id="login-error">Usuario o contrasena incorrectos</div>
   </div>
 </div>
