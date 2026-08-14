@@ -464,14 +464,14 @@
 <script>
   // --- LOGIN ---
   var USUARIOS = [
-    {usuario:'Martin Clenan', pass:'11031999', rol:'admin', iniciales:'MC'},
-    {usuario:'Danilo Rivero',  pass:'20112002', rol:'admin', iniciales:'DR'},
+    {usuario:'martin', pass:'11031999', rol:'admin', iniciales:'MC'},
+    {usuario:'danilo',  pass:'20112002', rol:'admin', iniciales:'DR'},
   ];
 
   function doLogin(){
     var user=document.getElementById('login-user').value.trim();
     var pass=document.getElementById('login-pass').value;
-    var found=USUARIOS.find(function(u){return u.usuario===user&&u.pass===pass;});
+    var found=USUARIOS.find(function(u){return u.usuario===user.toLowerCase().trim()&&u.pass===pass;});
     if(!found){
       document.getElementById('login-error').style.display='block';
       return;
