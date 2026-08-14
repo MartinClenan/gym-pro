@@ -134,7 +134,7 @@
       <label>Contrasena</label>
       <input type="password" id="login-pass" placeholder="Tu contrasena" autocomplete="current-password">
     </div>
-    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <button class="login-btn" id="login-btn">Ingresar</button>
     <div class="login-error" id="login-error">Usuario o contrasena incorrectos</div>
   </div>
 </div>
@@ -917,6 +917,9 @@
   }
 
   document.addEventListener('DOMContentLoaded',function(){
+    var loginBtn = document.getElementById('login-btn');
+    if(loginBtn) loginBtn.addEventListener('click', doLogin);
+    
     document.getElementById('f-pago').addEventListener('change',function(){
       document.getElementById('f-pago-extra').style.display=this.checked?'block':'none';
       if(this.checked&&!document.getElementById('f-pago-monto').value){
