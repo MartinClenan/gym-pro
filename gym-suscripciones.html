@@ -94,6 +94,19 @@
   ::-webkit-scrollbar{width:6px;height:6px;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+  .login-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;}
+  .login-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:2rem;width:100%;max-width:380px;}
+  .login-logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent);text-align:center;margin-bottom:0.25rem;}
+  .login-sub{text-align:center;color:var(--text3);font-size:13px;margin-bottom:2rem;}
+  .login-field{margin-bottom:14px;}
+  .login-field label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:5px;}
+  .login-field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;}
+  .login-field input:focus{border-color:var(--accent);}
+  .login-btn{width:100%;background:var(--accent);color:var(--accent-text);border:none;border-radius:var(--radius);padding:12px;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:6px;}
+  .login-btn:hover{background:#d4f55c;}
+  .login-error{color:var(--red);font-size:13px;text-align:center;margin-top:10px;display:none;}
+  .user-info{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);}
+  .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;}
   @media(max-width:700px){
     .app{flex-direction:column;}
     .sidebar{width:100%;flex-direction:row;flex-wrap:wrap;padding:1rem;gap:4px;}
@@ -108,9 +121,31 @@
 </style>
 </head>
 <body>
+<!-- Login -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">GYM<span style="color:var(--text)">PRO</span></div>
+    <div class="login-sub">Sistema de gestion del gimnasio</div>
+    <div class="login-field">
+      <label>Usuario</label>
+      <input type="text" id="login-user" placeholder="Tu nombre de usuario" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Contrasena</label>
+      <input type="password" id="login-pass" placeholder="Tu contrasena" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-error" id="login-error">Usuario o contrasena incorrectos</div>
+  </div>
+</div>
+
 <div class="app">
   <aside class="sidebar">
     <div class="logo">GYM<span>PRO</span></div>
+    <div class="user-info" style="padding:8px 4px;margin-bottom:4px;">
+      <div class="user-avatar" id="user-avatar"></div>
+      <span id="user-name" style="font-size:12px;"></span>
+    </div>
     <button class="nav-btn active" onclick="setView('socios',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Socios
@@ -132,6 +167,10 @@
       Asistencia
     </button>
     <div class="sidebar-bottom">
+      <button class="nav-btn" onclick="cerrarSesion()" style="color:var(--red);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Cerrar sesion
+      </button>
       <button class="nav-btn" onclick="exportarCSV()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Exportar CSV
@@ -423,6 +462,58 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  // --- LOGIN ---
+  var USUARIOS = [
+    {usuario:'Martin Clenan', pass:'11031999', rol:'admin', iniciales:'MC'},
+    {usuario:'Danilo Rivero',  pass:'20112002', rol:'admin', iniciales:'DR'},
+  ];
+
+  function doLogin(){
+    var user=document.getElementById('login-user').value.trim();
+    var pass=document.getElementById('login-pass').value;
+    var found=USUARIOS.find(function(u){return u.usuario===user&&u.pass===pass;});
+    if(!found){
+      document.getElementById('login-error').style.display='block';
+      return;
+    }
+    localStorage.setItem('gym_session', JSON.stringify({usuario:found.usuario,rol:found.rol,iniciales:found.iniciales}));
+    mostrarApp(found);
+  }
+
+  function mostrarApp(user){
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('user-name').textContent=user.usuario;
+    document.getElementById('user-avatar').textContent=user.iniciales;
+    checkSession();
+  }
+
+  function cerrarSesion(){
+    if(!confirm('Cerrar sesion?'))return;
+    localStorage.removeItem('gym_session');
+    location.reload();
+  }
+
+  function checkSession(){
+    var session=localStorage.getItem('gym_session');
+    if(session){
+      try{
+        var user=JSON.parse(session);
+        mostrarApp(user);
+      }catch(e){
+        document.getElementById('login-overlay').style.display='flex';
+      }
+    } else {
+      document.getElementById('login-overlay').style.display='flex';
+    }
+  }
+
+  // Enter para hacer login
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Enter'&&document.getElementById('login-overlay').style.display!=='none'){
+      doLogin();
+    }
+  });
+
   var API_KEY = 'patBZlyKEB8GuRLpG.ef1d684e17de16f8192bb6b43368ed8859b6286d2996ed4ebe19d025883b8d92';
   var BASE    = 'appvBGUGQgezRFnaE';
   var T_SOC   = 'tblp50VDdK0zxIPJw';
@@ -1059,7 +1150,7 @@
     el.addEventListener('click',function(e){if(e.target===el)el.classList.remove('open');});
   });
 
-  init();
+  checkSession();
 </script>
 </body>
 </html>
