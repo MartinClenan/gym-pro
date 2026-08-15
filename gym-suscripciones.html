@@ -475,6 +475,14 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  // Desregistrar service workers viejos automaticamente
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(reg){reg.unregister();});
+    });
+  }
+</script>
+<script>
   // --- LOGIN ---
   var USUARIOS = [
     {usuario:'martin', pass:'11031999', rol:'admin', iniciales:'MC'},
