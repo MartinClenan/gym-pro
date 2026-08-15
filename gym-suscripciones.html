@@ -557,6 +557,14 @@
   var mesCursor = new Date(), diaCursor = new Date(), editPagoId = null;
 
   function today(){ return new Date().toISOString().slice(0,10); }
+  function parseFecha(f){
+    // Parsear fecha sin problema de timezone (YYYY-MM-DD -> {y,m,d})
+    if(!f)return null;
+    if(f.includes(' al '))f=f.split(' al ')[0];
+    var p=f.trim().split('-');
+    if(p.length!==3)return null;
+    return {y:parseInt(p[0]),m:parseInt(p[1])-1,d:parseInt(p[2])};
+  }
   function addDias(f,d){ var dt=new Date(f); dt.setDate(dt.getDate()+d); return dt.toISOString().slice(0,10); }
   function diffDias(a,b){ return Math.round((new Date(a)-new Date(b))/86400000); }
   function fmtDate(d){ if(!d)return'-'; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
@@ -643,16 +651,13 @@
     var vencidos=socios.filter(function(s){return getEstado(s)==='vencido';}).length;
     var vencenP=socios.filter(function(s){return getEstado(s)==='vence';}).length;
     var mes=new Date();
+    var mesNum=mes.getMonth(), anioNum=mes.getFullYear();
     var ing=pagos.filter(function(p){
       var f=p.fields[FP.fechaPago];
-      // Si no hay fechaPago, usar el inicio del periodo
-      if(!f){
-        var periodo=p.fields[FP.periodo]||'';
-        if(periodo.includes(' al '))f=periodo.split(' al ')[0];
-      }
-      if(!f)return false;
-      var d=new Date(f);
-      return d.getMonth()===mes.getMonth()&&d.getFullYear()===mes.getFullYear();
+      if(!f){var per=p.fields[FP.periodo]||'';if(per.includes(' al '))f=per.split(' al ')[0];}
+      var pf=parseFecha(f);
+      if(!pf)return false;
+      return pf.m===mesNum&&pf.y===anioNum;
     }).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
     document.getElementById('stats-row').innerHTML=
       '<div class="stat-card"><div class="stat-label">Total socios</div><div class="stat-num">'+socios.length+'</div></div>'+
