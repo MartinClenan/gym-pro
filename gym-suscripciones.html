@@ -4,11 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gym -- Suscripciones</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#c8f04a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GymPro">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);--text:#f0f0f0;--text2:#888;--text3:#555;--accent:#c8f04a;--accent-dim:rgba(200,240,74,0.12);--accent-text:#0f0f0f;--red:#ff5555;--red-dim:rgba(255,85,85,0.12);--amber:#f4a94a;--amber-dim:rgba(244,169,74,0.12);--green:#4acf7f;--green-dim:rgba(74,207,127,0.12);--blue:#5ab4f4;--blue-dim:rgba(90,180,244,0.12);--purple:#a78bfa;--purple-dim:rgba(167,139,250,0.12);--radius:10px;--radius-lg:14px;}
@@ -504,14 +499,6 @@
     document.getElementById('user-avatar').textContent=user.iniciales;
     checkSession();
 
-  // Registrar service worker para PWA
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('/gym-pro/sw.js').then(function(){
-      console.log('SW registrado');
-    }).catch(function(e){
-      console.log('SW error:', e);
-    });
-  }
   }
 
   function cerrarSesion(){
@@ -657,10 +644,13 @@
     var vencenP=socios.filter(function(s){return getEstado(s)==='vence';}).length;
     var mes=new Date();
     var ing=pagos.filter(function(p){
-      var f=p.fields[FP.fechaPago]||p.fields[FP.vencNuevo]||p.fields[FP.periodo];
+      var f=p.fields[FP.fechaPago];
+      // Si no hay fechaPago, usar el inicio del periodo
+      if(!f){
+        var periodo=p.fields[FP.periodo]||'';
+        if(periodo.includes(' al '))f=periodo.split(' al ')[0];
+      }
       if(!f)return false;
-      // Si es el periodo "2026-08-01 al 2026-08-31", tomar la primera fecha
-      if(f.includes(' al '))f=f.split(' al ')[0];
       var d=new Date(f);
       return d.getMonth()===mes.getMonth()&&d.getFullYear()===mes.getFullYear();
     }).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
@@ -1185,14 +1175,6 @@
 
   checkSession();
 
-  // Registrar service worker para PWA
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('/gym-pro/sw.js').then(function(){
-      console.log('SW registrado');
-    }).catch(function(e){
-      console.log('SW error:', e);
-    });
-  }
 </script>
 </body>
 </html>
