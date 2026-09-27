@@ -579,18 +579,21 @@
   function fmtMoney(n){ return '$'+Math.round(n).toLocaleString('es-AR'); }
   function initials(n){ return (n||'').split(' ').slice(0,2).map(function(x){return x[0]||'';}).join('').toUpperCase(); }
   function getNombre(s){ return ((s.fields[F.nombre]||'')+' '+(s.fields[F.apellido]||'')).trim(); }
-  function getPlan(s){ var v=s.fields[F.suscrip]; return (v&&typeof v==='object')?v.name:(v||''); }
+  function getPlan(s){ var v=s.fields[F.suscrip]; var p=(v&&typeof v==='object')?v.name:(v||''); return p; }
+  function esPlanDia(s){ var p=getPlan(s); return p==='Dia'||p==='Día'||p==='dia'||p==='día'; }
+  function esPlanSemana(s){ var p=getPlan(s); return p==='Semana'||p==='semana'; }
+  function esPlanMes(s){ var p=getPlan(s); return p==='Mes'||p==='mes'; }
   function getEstado(s){
     var venc=s.fields[F.fecha]; if(!venc)return 'activo';
     var plan=getPlan(s);
     // Plan Dia: nunca genera alerta de vencimiento
-    if(plan==='Dia') return 'activo';
+    if(esPlanDia(s)) return 'activo';
     var d=diffDias(venc,today());
     return d<0?'vencido':d<=7?'vence':'activo';
   }
   function pagoEsteMes(s){
     // Plan Dia: siempre aparece como "pago" para no mostrar en deudores
-    if(getPlan(s)==='Dia') return true;
+    if(esPlanDia(s)) return true;
     return pagos.some(function(p){ return p.fields[FP.socioId]===s.id; });
   }
 
@@ -709,7 +712,7 @@
       var matchP=!fplan||plan===fplan;
       var est=getEstado(s);
       // Ocultar socios Dia cuyo vencimiento ya paso (salvo que se busque explicitamente)
-      if(plan==='Dia'&&!search&&!fplan){
+      if(esPlanDia(s)&&!search&&!fplan){
         var venc=s.fields[F.fecha];
         if(venc&&diffDias(venc,today())<0) return false;
       }
