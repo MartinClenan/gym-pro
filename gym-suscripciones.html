@@ -708,6 +708,11 @@
       var plan=getPlan(s);
       var matchP=!fplan||plan===fplan;
       var est=getEstado(s);
+      // Ocultar socios Dia cuyo vencimiento ya paso (salvo que se busque explicitamente)
+      if(plan==='Dia'&&!search&&!fplan){
+        var venc=s.fields[F.fecha];
+        if(venc&&diffDias(venc,today())<0) return false;
+      }
       var matchT=tabSocios==='todos'||(tabSocios==='activos'&&(est==='activo'||est==='vence'))||(tabSocios==='vencidos'&&est==='vencido');
       return matchS&&matchP&&matchT;
     });
