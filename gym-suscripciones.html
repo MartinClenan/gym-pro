@@ -582,10 +582,15 @@
   function getPlan(s){ var v=s.fields[F.suscrip]; return (v&&typeof v==='object')?v.name:(v||''); }
   function getEstado(s){
     var venc=s.fields[F.fecha]; if(!venc)return 'activo';
+    var plan=getPlan(s);
+    // Plan Dia: nunca genera alerta de vencimiento
+    if(plan==='Dia') return 'activo';
     var d=diffDias(venc,today());
     return d<0?'vencido':d<=7?'vence':'activo';
   }
   function pagoEsteMes(s){
+    // Plan Dia: siempre aparece como "pago" para no mostrar en deudores
+    if(getPlan(s)==='Dia') return true;
     return pagos.some(function(p){ return p.fields[FP.socioId]===s.id; });
   }
 
