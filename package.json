@@ -1,0 +1,13 @@
+{
+  "name": "gym-pro-secure-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node backend/server.mjs",
+    "hash-password": "node backend/hash-password.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -128,26 +128,13 @@
     <div class="login-sub">Sistema de gestion del gimnasio</div>
     <div class="login-field">
       <label>Usuario</label>
-      <input type="text" id="login-user" placeholder="martin o danilo" autocomplete="off">
+      <input type="text" id="login-user" placeholder="Usuario" autocomplete="username">
     </div>
     <div class="login-field">
       <label>Contrasena</label>
-      <input type="password" id="login-pass" placeholder="Tu contrasena" autocomplete="off">
+      <input type="password" id="login-pass" placeholder="Tu contraseña" autocomplete="current-password">
     </div>
-    <button class="login-btn" onclick="(function(){
-      var u=document.getElementById('login-user').value.trim().toLowerCase();
-      var p=document.getElementById('login-pass').value.trim();
-      var err=document.getElementById('login-error');
-      var usuarios=[{u:'martin',p:'11031999',n:'Martin Clenan',i:'MC'},{u:'danilo',p:'20112002',n:'Danilo Rivero',i:'DR'}];
-      var found=usuarios.find(function(x){return x.u===u&&x.p===p;});
-      if(!found){err.style.display='block';return;}
-      err.style.display='none';
-      localStorage.setItem('gym_session',JSON.stringify({usuario:found.n,rol:'admin',iniciales:found.i}));
-      document.getElementById('login-overlay').style.display='none';
-      document.getElementById('user-name').textContent=found.n;
-      document.getElementById('user-avatar').textContent=found.i;
-      init();
-    })()">Ingresar</button>
+    <button class="login-btn" id="btn-login" type="button" onclick="doLogin()">Ingresar</button>
     <div class="login-error" id="login-error">Usuario o contrasena incorrectos</div>
   </div>
 </div>
@@ -482,62 +469,102 @@
     });
   }
 </script>
+<script src="./gym-config.js"></script>
 <script>
-  // --- LOGIN ---
-  var USUARIOS = [
-    {usuario:'martin', pass:'11031999', rol:'admin', iniciales:'MC'},
-    {usuario:'danilo',  pass:'20112002', rol:'admin', iniciales:'DR'},
-  ];
+  // --- Autenticación delegada al backend ---
+  var API_BASE = typeof window.GYM_API_BASE === 'string' ? window.GYM_API_BASE.trim().replace(/\/+$/, '') : '';
+  var sessionToken = null;
+  var sessionIdleTimer = null;
+  var sessionExpiryTimer = null;
+  var SESSION_IDLE_MS = 15 * 60 * 1000;
+  var SESSION_MAX_MS = 30 * 60 * 1000;
 
-  function doLogin(){
-    var user=document.getElementById('login-user').value.trim();
-    var pass=document.getElementById('login-pass').value;
-    var found=USUARIOS.find(function(u){return u.usuario===user.toLowerCase().trim()&&u.pass===pass.trim();});
-    if(!found){
-      document.getElementById('login-error').style.display='block';
-      return;
+  function resetSessionIdleTimer(){
+    if(!sessionToken)return;
+    clearTimeout(sessionIdleTimer);
+    sessionIdleTimer=setTimeout(function(){sessionToken=null;location.reload();},SESSION_IDLE_MS);
+  }
+  function clearSessionTimers(){
+    clearTimeout(sessionIdleTimer);
+    clearTimeout(sessionExpiryTimer);
+  }
+
+  function getApiBase(){
+    if(!API_BASE)throw new Error('El backend seguro todavía no está configurado.');
+    var parsed=new URL(API_BASE,window.location.href);
+    if(parsed.protocol!=='https:'&&parsed.hostname!=='localhost'&&parsed.hostname!=='127.0.0.1'){
+      throw new Error('El backend debe usar una conexión HTTPS.');
     }
-    localStorage.setItem('gym_session', JSON.stringify({usuario:found.usuario,rol:found.rol,iniciales:found.iniciales}));
-    mostrarApp(found);
+    return parsed.origin+parsed.pathname.replace(/\/+$/,'');
+  }
+
+  async function doLogin(){
+    var err=document.getElementById('login-error');
+    var button=document.getElementById('btn-login');
+    var user=document.getElementById('login-user').value.trim().toLowerCase();
+    var password=document.getElementById('login-pass').value;
+    err.style.display='none';
+    button.disabled=true;
+    button.textContent='Ingresando...';
+    try{
+      var response=await fetch(getApiBase()+'/api/login',{
+        method:'POST',cache:'no-store',credentials:'omit',redirect:'error',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username:user,password:password})
+      });
+      var result=await response.json().catch(function(){return{};});
+      if(!response.ok)throw new Error(result.message||'No se pudo iniciar sesión.');
+      if(!result.accessToken||!result.user)throw new Error('El backend respondió con un formato inválido.');
+      sessionToken=result.accessToken;
+      clearSessionTimers();
+      sessionExpiryTimer=setTimeout(function(){sessionToken=null;location.reload();},SESSION_MAX_MS);
+      resetSessionIdleTimer();
+      document.getElementById('login-pass').value='';
+      mostrarApp(result.user);
+      await init();
+    }catch(e){
+      sessionToken=null;
+      clearSessionTimers();
+      document.getElementById('login-pass').value='';
+      err.textContent=e.message||'No se pudo iniciar sesión.';
+      err.style.display='block';
+    }finally{
+      button.disabled=false;
+      button.textContent='Ingresar';
+    }
   }
 
   function mostrarApp(user){
     document.getElementById('login-overlay').style.display='none';
-    document.getElementById('user-name').textContent=user.usuario;
-    document.getElementById('user-avatar').textContent=user.iniciales;
-    checkSession();
-
+    document.getElementById('user-name').textContent=user.usuario||'';
+    document.getElementById('user-avatar').textContent=user.iniciales||'';
   }
 
   function cerrarSesion(){
-    if(!confirm('Cerrar sesion?'))return;
-    localStorage.removeItem('gym_session');
+    if(!confirm('¿Cerrar sesión?'))return;
+    sessionToken=null;
+    clearSessionTimers();
     location.reload();
   }
 
   function checkSession(){
-    var session=localStorage.getItem('gym_session');
-    if(session){
-      try{
-        var user=JSON.parse(session);
-        mostrarApp(user);
-      }catch(e){
-        document.getElementById('login-overlay').style.display='flex';
-      }
-    } else {
-      document.getElementById('login-overlay').style.display='flex';
-    }
+    // La sesión vive solo en memoria; al recargar se solicita un nuevo ingreso.
+    sessionToken=null;
+    clearSessionTimers();
+    document.getElementById('login-overlay').style.display='flex';
   }
 
-  // Enter para hacer login
-  document.addEventListener('keydown', function(e){
+  ['click','keydown','touchstart'].forEach(function(eventName){
+    document.addEventListener(eventName,resetSessionIdleTimer,{passive:true});
+  });
+  document.addEventListener('keydown',function(e){
     if(e.key==='Enter'&&document.getElementById('login-overlay').style.display!=='none'){
+      e.preventDefault();
       doLogin();
     }
   });
 
-  var API_KEY = 'patBZlyKEB8GuRLpG.ef1d684e17de16f8192bb6b43368ed8859b6286d2996ed4ebe19d025883b8d92';
-  var BASE    = 'appvBGUGQgezRFnaE';
+  // Estas identificaciones son públicas; el backend limita las tablas permitidas.
   var T_SOC   = 'tblp50VDdK0zxIPJw';
   var T_PAG   = 'tbly47mIaBng11MWv';
 
@@ -564,21 +591,49 @@
   var socios = [], pagos = [], editId = null, histSocioId = null, tabSocios = 'todos';
   var mesCursor = new Date(), diaCursor = new Date(), editPagoId = null;
 
-  function today(){ return new Date().toISOString().slice(0,10); }
+  function localDateKey(date){
+    return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+  }
+  function today(){ return localDateKey(new Date()); }
   function parseFecha(f){
     // Parsear fecha sin problema de timezone (YYYY-MM-DD -> {y,m,d})
     if(!f)return null;
+    if(typeof f!=='string')f=String(f);
     if(f.includes(' al '))f=f.split(' al ')[0];
     var p=f.trim().split('-');
     if(p.length!==3)return null;
-    return {y:parseInt(p[0]),m:parseInt(p[1])-1,d:parseInt(p[2])};
+    var y=parseInt(p[0],10),m=parseInt(p[1],10)-1,d=parseInt(p[2],10);
+    var check=new Date(Date.UTC(y,m,d));
+    if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(d)||check.getUTCFullYear()!==y||check.getUTCMonth()!==m||check.getUTCDate()!==d)return null;
+    return {y:y,m:m,d:d};
   }
-  function addDias(f,d){ var dt=new Date(f); dt.setDate(dt.getDate()+d); return dt.toISOString().slice(0,10); }
-  function diffDias(a,b){ return Math.round((new Date(a)-new Date(b))/86400000); }
+  function addDias(f,d){
+    var parts=parseFecha(f);
+    if(!parts)return '';
+    var dt=new Date(parts.y,parts.m,parts.d,12);
+    dt.setDate(dt.getDate()+Number(d||0));
+    return localDateKey(dt);
+  }
+  function diffDias(a,b){
+    var pa=parseFecha(a),pb=parseFecha(b);
+    if(!pa||!pb)return 0;
+    return Math.round((Date.UTC(pa.y,pa.m,pa.d)-Date.UTC(pb.y,pb.m,pb.d))/86400000);
+  }
   function fmtDate(d){ if(!d)return'-'; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
   function fmtMoney(n){ return '$'+Math.round(n).toLocaleString('es-AR'); }
+  function esc(value){
+    return String(value==null?'':value).replace(/[&<>"']/g,function(char){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];
+    });
+  }
   function initials(n){ return (n||'').split(' ').slice(0,2).map(function(x){return x[0]||'';}).join('').toUpperCase(); }
   function getNombre(s){ return ((s.fields[F.nombre]||'')+' '+(s.fields[F.apellido]||'')).trim(); }
+  function getPagoSocioId(p){
+    var value=p&&p.fields?p.fields[FP.socioId]:null;
+    if(Array.isArray(value))value=value[0];
+    if(value&&typeof value==='object')value=value.id||value.value||'';
+    return value||'';
+  }
   function getPlan(s){ var v=s.fields[F.suscrip]; var p=(v&&typeof v==='object')?v.name:(v||''); return p; }
   function esPlanDia(s){ var p=getPlan(s); return p==='Dia'||p==='Día'||p==='dia'||p==='día'; }
   function esPlanSemana(s){ var p=getPlan(s); return p==='Semana'||p==='semana'; }
@@ -594,7 +649,12 @@
   function pagoEsteMes(s){
     // Plan Dia: siempre aparece como "pago" para no mostrar en deudores
     if(esPlanDia(s)) return true;
-    return pagos.some(function(p){ return p.fields[FP.socioId]===s.id; });
+    var now=new Date();
+    return pagos.some(function(p){
+      if(getPagoSocioId(p)!==s.id)return false;
+      var fecha=parseFecha(p.fields[FP.fechaPago]);
+      return !!fecha&&fecha.m===now.getMonth()&&fecha.y===now.getFullYear();
+    });
   }
 
   function normalizeRec(rec){
@@ -608,16 +668,22 @@
 
   async function api(path,method,body){
     method=method||'GET';
-    var opts={method:method,headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'}};
+    if(!sessionToken)throw new Error('La sesión venció. Ingresá de nuevo.');
+    var splitAt=path.indexOf('?');
+    var resource=splitAt<0?path:path.slice(0,splitAt);
+    var query=splitAt<0?'':path.slice(splitAt);
+    var safePath=resource.split('/').map(encodeURIComponent).join('/');
+    var opts={method:method,cache:'no-store',credentials:'omit',redirect:'error',headers:{'Authorization':'Bearer '+sessionToken,'Content-Type':'application/json'}};
     if(body)opts.body=JSON.stringify(body);
-    var res=await fetch('https://api.airtable.com/v0/'+BASE+'/'+path,opts);
-    if(!res.ok){var e=await res.json().catch(function(){return{};});throw new Error(e.error&&e.error.message?e.error.message:'Error '+res.status);}
-    var data=await res.json();
-    if(data.records)data.records=data.records.map(normalizeRec);
-    if(data.record)data.record=normalizeRec(data.record);
-    return data;
+    var res=await fetch(getApiBase()+'/api/airtable/'+safePath+query,opts);
+    var result=await res.json().catch(function(){return{};});
+    if(res.status===401){sessionToken=null;clearSessionTimers();document.getElementById('login-overlay').style.display='flex';}
+    if(!res.ok)throw new Error(result.message||'No se pudo completar la operación.');
+    resetSessionIdleTimer();
+    if(result.records)result.records=result.records.map(normalizeRec);
+    if(result.record)result.record=normalizeRec(result.record);
+    return result;
   }
-
   async function fetchAll(tableId){
     var all=[],offset=null;
     do{
@@ -690,7 +756,7 @@
     alertas.forEach(function(s){
       var d=diffDias(s.fields[F.fecha],today());
       var txt=d<0?'Vencio hace '+Math.abs(d)+' dia'+(Math.abs(d)!==1?'s':''):'Vence en '+d+' dia'+(d!==1?'s':'');
-      html+='<div class="alert-row"><span>'+getNombre(s)+'</span><span>'+txt+' - '+fmtDate(s.fields[F.fecha])+'</span></div>';
+      html+='<div class="alert-row"><span>'+esc(getNombre(s))+'</span><span>'+esc(txt)+' - '+esc(fmtDate(s.fields[F.fecha]))+'</span></div>';
     });
     html+='</div>';
     document.getElementById('alerts-area').innerHTML=html;
@@ -726,12 +792,12 @@
       var estB=est==='activo'?'<span class="badge badge-activo">Activo</span>':est==='vence'?'<span class="badge badge-vence">Vence pronto</span>':'<span class="badge badge-vencido">Vencido</span>';
       var pagoB=pagoEsteMes(s)?'<span class="badge badge-activo">Pago</span>':'<span class="badge badge-vencido">Debe</span>';
       var planClass='plan-'+(plan||'Mes');
-      var notaIcon=s.fields[F.notas]?' <span title="'+s.fields[F.notas]+'" style="font-size:11px;color:var(--amber);">nota</span>':'';
+      var notaIcon=s.fields[F.notas]?' <span title="'+esc(s.fields[F.notas])+'" style="font-size:11px;color:var(--amber);">nota</span>':'';
       return '<tr>'+
-        '<td><div class="name-cell"><div class="avatar">'+initials(nombre)+'</div><div><div class="name-main">'+nombre+notaIcon+'</div><div class="name-sub">'+(s.fields[F.contacto]||'')+'</div></div></div></td>'+
-        '<td><span class="badge '+planClass+'">'+plan+'</span></td>'+
+        '<td><div class="name-cell"><div class="avatar">'+esc(initials(nombre))+'</div><div><div class="name-main">'+esc(nombre)+notaIcon+'</div><div class="name-sub">'+esc(s.fields[F.contacto]||'')+'</div></div></div></td>'+
+        '<td><span class="badge '+esc(planClass)+'">'+esc(plan)+'</span></td>'+
         '<td>'+fmtMoney(s.fields[F.precio]||0)+'</td>'+
-        '<td>'+fmtDate(s.fields[F.fecha])+'</td>'+
+        '<td>'+esc(fmtDate(s.fields[F.fecha]))+'</td>'+
         '<td>'+estB+'</td>'+
         '<td>'+pagoB+'</td>'+
         '<td><div class="action-row">'+
@@ -746,24 +812,26 @@
   function renderPagos(){
     var search=(document.getElementById('search-pago').value||'').toLowerCase();
     var list=pagos.slice().reverse().filter(function(p){
-      var s=socios.find(function(x){return x.id===p.fields[FP.socioId];});
+      var socioId=getPagoSocioId(p);
+      var s=socios.find(function(x){return x.id===socioId;});
       if(!s)return false;
       return !search||getNombre(s).toLowerCase().includes(search);
     });
     var tbody=document.getElementById('tbody-pagos');
     if(!list.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty">No hay pagos registrados</div></td></tr>';return;}
     tbody.innerHTML=list.map(function(p){
-      var s=socios.find(function(x){return x.id===p.fields[FP.socioId];});
+      var socioId=getPagoSocioId(p);
+      var s=socios.find(function(x){return x.id===socioId;});
       var nombre=s?getNombre(s):'Desconocido';
       var plan=s?getPlan(s):'-';
       var periodo=p.fields[FP.periodo]||'';
       var periodoFmt=periodo?periodo.split(' al ').map(fmtDate).join(' al '):'-';
       return '<tr>'+
-        '<td><div class="name-cell"><div class="avatar">'+initials(nombre)+'</div><span>'+nombre+'</span></div></td>'+
-        '<td><span class="badge plan-'+(plan||'Mes')+'">'+plan+'</span></td>'+
+        '<td><div class="name-cell"><div class="avatar">'+esc(initials(nombre))+'</div><span>'+esc(nombre)+'</span></div></td>'+
+        '<td><span class="badge '+esc('plan-'+(plan||'Mes'))+'">'+esc(plan)+'</span></td>'+
         '<td style="color:var(--accent);font-weight:500">'+fmtMoney(p.fields[FP.monto]||0)+'</td>'+
-        '<td>'+fmtDate(p.fields[FP.fechaPago])+'</td>'+
-        '<td style="color:var(--text3);font-size:12px">'+periodoFmt+'</td>'+
+        '<td>'+esc(fmtDate(p.fields[FP.fechaPago]))+'</td>'+
+        '<td style="color:var(--text3);font-size:12px">'+esc(periodoFmt)+'</td>'+
         '<td><div class="action-row">'+
           '<button class="btn btn-sm btn-ghost" onclick="editarPago(\''+p.id+'\')">Editar</button>'+
           '<button class="btn btn-sm btn-danger" onclick="borrarPago(\''+p.id+'\')">x</button>'+
@@ -785,11 +853,11 @@
     tbody.innerHTML=deudores.map(function(s){
       var nombre=getNombre(s),plan=getPlan(s)||'-';
       return '<tr>'+
-        '<td><div class="name-cell"><div class="avatar" style="background:var(--red-dim);color:var(--red);border-color:rgba(255,85,85,0.2)">'+initials(nombre)+'</div>'+
-        '<div><div class="name-main">'+nombre+'</div><div class="name-sub">'+(s.fields[F.contacto]||'')+'</div></div></div></td>'+
-        '<td><span class="badge plan-'+(plan||'Mes')+'">'+plan+'</span></td>'+
+        '<td><div class="name-cell"><div class="avatar" style="background:var(--red-dim);color:var(--red);border-color:rgba(255,85,85,0.2)">'+esc(initials(nombre))+'</div>'+
+        '<div><div class="name-main">'+esc(nombre)+'</div><div class="name-sub">'+esc(s.fields[F.contacto]||'')+'</div></div></div></td>'+
+        '<td><span class="badge '+esc('plan-'+(plan||'Mes'))+'">'+esc(plan)+'</span></td>'+
         '<td>'+fmtMoney(s.fields[F.precio]||0)+'</td>'+
-        '<td>'+fmtDate(s.fields[F.fecha])+'</td>'+
+        '<td>'+esc(fmtDate(s.fields[F.fecha]))+'</td>'+
         '<td><button class="btn btn-sm btn-ghost" onclick="openHistById(\''+s.id+'\')">Registrar pago</button></td>'+
       '</tr>';
     }).join('');
@@ -798,8 +866,8 @@
   function renderEstadisticas(){
     var now=new Date(),mes=now.getMonth(),anio=now.getFullYear();
     document.getElementById('st-total').textContent=socios.length;
-    var ingMes=pagos.filter(function(p){var f=p.fields[FP.fechaPago];if(!f)return false;var d=new Date(f);return d.getMonth()===mes&&d.getFullYear()===anio;}).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
-    var ingAnio=pagos.filter(function(p){var f=p.fields[FP.fechaPago];if(!f)return false;return new Date(f).getFullYear()===anio;}).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
+    var ingMes=pagos.filter(function(p){var d=parseFecha(p.fields[FP.fechaPago]);return !!d&&d.m===mes&&d.y===anio;}).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
+    var ingAnio=pagos.filter(function(p){var d=parseFecha(p.fields[FP.fechaPago]);return !!d&&d.y===anio;}).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
     document.getElementById('st-mes').textContent=fmtMoney(ingMes);
     document.getElementById('st-anio').textContent=fmtMoney(ingAnio);
     var planes={'Dia':0,'Semana':0,'Mes':0};
@@ -821,7 +889,7 @@
     for(var i=5;i>=0;i--){
       var dt=new Date(anio,mes-i,1);
       var m=dt.getMonth(),y=dt.getFullYear();
-      var total=pagos.filter(function(p){var f=p.fields[FP.fechaPago];if(!f)return false;var pd=new Date(f);return pd.getMonth()===m&&pd.getFullYear()===y;}).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
+      var total=pagos.filter(function(p){var pd=parseFecha(p.fields[FP.fechaPago]);return !!pd&&pd.m===m&&pd.y===y;}).reduce(function(a,p){return a+Number(p.fields[FP.monto]||0);},0);
       var nombres=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
       meses6.push({label:nombres[m],total:total});
     }
@@ -830,7 +898,7 @@
       return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="font-size:11px;color:var(--text3)">'+( m.total>0?fmtMoney(m.total):'')+'</div><div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:'+Math.round(m.total/maxIng*120)+'px;min-height:'+(m.total>0?4:0)+'px;"></div><div style="font-size:11px;color:var(--text2)">'+m.label+'</div></div>';
     }).join('');
     var conteo={};
-    pagos.forEach(function(p){var sid=p.fields[FP.socioId];if(!sid)return;conteo[sid]=(conteo[sid]||0)+1;});
+    pagos.forEach(function(p){var sid=getPagoSocioId(p);if(!sid)return;conteo[sid]=(conteo[sid]||0)+1;});
     var top=Object.keys(conteo).sort(function(a,b){return conteo[b]-conteo[a];}).slice(0,5);
     if(!top.length){document.getElementById('chart-top-socios').innerHTML='<div style="color:var(--text3);font-size:13px">Sin datos de pagos todavia</div>';return;}
     var maxP=conteo[top[0]]||1;
@@ -838,7 +906,7 @@
       var s=socios.find(function(x){return x.id===sid;});
       var nombre=s?getNombre(s):'Desconocido';
       var cant=conteo[sid];
-      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="font-size:13px;min-width:140px;color:var(--text)">'+nombre+'</div><div style="flex:1;background:var(--surface2);border-radius:99px;height:6px;"><div style="background:var(--accent);width:'+Math.round(cant/maxP*100)+'%;height:6px;border-radius:99px;"></div></div><div style="font-size:12px;color:var(--text2);min-width:60px;text-align:right">'+cant+' pago'+(cant!==1?'s':'')+'</div></div>';
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="font-size:13px;min-width:140px;color:var(--text)">'+esc(nombre)+'</div><div style="flex:1;background:var(--surface2);border-radius:99px;height:6px;"><div style="background:var(--accent);width:'+Math.round(cant/maxP*100)+'%;height:6px;border-radius:99px;"></div></div><div style="font-size:12px;color:var(--text2);min-width:60px;text-align:right">'+cant+' pago'+(cant!==1?'s':'')+'</div></div>';
     }).join('');
   }
 
@@ -851,9 +919,9 @@
     document.getElementById('resumen-mes-label').textContent=nombreMes(mesCursor);
     var filas=socios.map(function(s){
       var pagosMes=pagos.filter(function(p){
-        if(p.fields[FP.socioId]!==s.id)return false;
-        var f=p.fields[FP.fechaPago];if(!f)return false;
-        var d=new Date(f);return d.getMonth()===m&&d.getFullYear()===y;
+        if(getPagoSocioId(p)!==s.id)return false;
+        var d=parseFecha(p.fields[FP.fechaPago]);
+        return !!d&&d.m===m&&d.y===y;
       });
       var pago=pagosMes.length?pagosMes[pagosMes.length-1]:null;
       return{socio:s,pago:pago};
@@ -877,18 +945,18 @@
       var monto=p?fmtMoney(p.fields[FP.monto]||0):'<span style="color:var(--text3)">'+fmtMoney(s.fields[F.precio]||0)+'</span>';
       var accion=p?'<button class="btn btn-sm btn-ghost" onclick="editarPago(\''+p.id+'\')">Editar</button>':'<button class="btn btn-sm" style="background:var(--red-dim);color:var(--red);border:none;" onclick="openHistById(\''+s.id+'\')">Cobrar</button>';
       return '<tr style="'+(p?'':'opacity:0.75;')+'">'+
-        '<td><div class="name-cell"><div class="avatar" style="'+(p?'':'background:var(--red-dim);color:var(--red);border-color:rgba(255,85,85,0.2)')+'">'+initials(nombre)+'</div><div><div class="name-main">'+nombre+'</div><div class="name-sub">'+(s.fields[F.contacto]||'')+'</div></div></div></td>'+
-        '<td><span class="badge plan-'+(plan||'Mes')+'">'+plan+'</span></td>'+
+        '<td><div class="name-cell"><div class="avatar" style="'+(p?'':'background:var(--red-dim);color:var(--red);border-color:rgba(255,85,85,0.2)')+'">'+esc(initials(nombre))+'</div><div><div class="name-main">'+esc(nombre)+'</div><div class="name-sub">'+esc(s.fields[F.contacto]||'')+'</div></div></div></td>'+
+        '<td><span class="badge '+esc('plan-'+(plan||'Mes'))+'">'+esc(plan)+'</span></td>'+
         '<td>'+monto+'</td>'+
-        '<td>'+fechaPago+'</td>'+
-        '<td>'+vencPago+'</td>'+
+        '<td>'+esc(fechaPago)+'</td>'+
+        '<td>'+esc(vencPago)+'</td>'+
         '<td>'+pagoB+'</td>'+
         '<td>'+accion+'</td>'+
       '</tr>';
     }).join('');
   }
 
-  function fechaKey(d){return d.toISOString().slice(0,10);}
+  function fechaKey(d){return localDateKey(d);}
   function nombreDia(d){var dias=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];return dias[d.getDay()]+' '+d.getDate()+' de '+meses[d.getMonth()]+' '+d.getFullYear();}
   function cambiarDia(delta){diaCursor=new Date(diaCursor);diaCursor.setDate(diaCursor.getDate()+delta);renderAsistencia();}
   function getAsistencia(fecha){try{var r=localStorage.getItem('asist_'+fecha);return r?JSON.parse(r):{};}catch(e){return{};}}
@@ -910,8 +978,8 @@
     tbody.innerHTML=lista.map(function(s){
       var nombre=getNombre(s),plan=getPlan(s)||'-',present=!!data[s.id];
       return '<tr style="cursor:pointer;" onclick="toggleAsistencia(\''+s.id+'\')">'+
-        '<td><div class="name-cell"><div class="avatar" style="'+(present?'background:var(--accent-dim);color:var(--accent);border-color:rgba(200,240,74,0.3)':'background:var(--surface2);color:var(--text3);border-color:transparent')+'">'+initials(nombre)+'</div><div><div class="name-main">'+nombre+'</div><div class="name-sub">'+(s.fields[F.contacto]||'')+'</div></div></div></td>'+
-        '<td><span class="badge plan-'+(plan||'Mes')+'">'+plan+'</span></td>'+
+        '<td><div class="name-cell"><div class="avatar" style="'+(present?'background:var(--accent-dim);color:var(--accent);border-color:rgba(200,240,74,0.3)':'background:var(--surface2);color:var(--text3);border-color:transparent')+'">'+esc(initials(nombre))+'</div><div><div class="name-main">'+esc(nombre)+'</div><div class="name-sub">'+esc(s.fields[F.contacto]||'')+'</div></div></div></td>'+
+        '<td><span class="badge '+esc('plan-'+(plan||'Mes'))+'">'+esc(plan)+'</span></td>'+
         '<td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:50%;border:2px solid '+(present?'var(--accent)':'var(--border2)')+';background:'+(present?'var(--accent-dim)':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:14px;">'+(present?'v':'')+'</div><span style="font-size:13px;color:'+(present?'var(--accent)':'var(--text3)')+';">'+(present?'Presente':'Ausente')+'</span></div></td>'+
       '</tr>';
     }).join('');
@@ -1060,15 +1128,15 @@
   }
 
   function renderHistModal(){
-    var list=pagos.filter(function(p){return p.fields[FP.socioId]===histSocioId;})
-      .sort(function(a,b){return new Date(b.fields[FP.fechaPago])-new Date(a.fields[FP.fechaPago]);});
+    var list=pagos.filter(function(p){return getPagoSocioId(p)===histSocioId;})
+      .sort(function(a,b){return String(b.fields[FP.fechaPago]||'').localeCompare(String(a.fields[FP.fechaPago]||''));});
     if(!list.length){document.getElementById('hist-list').innerHTML='<div class="empty">Sin pagos registrados</div>';return;}
     document.getElementById('hist-list').innerHTML=list.map(function(p){
       var periodo=p.fields[FP.periodo]||'';
       var periodoFmt=periodo?periodo.split(' al ').map(fmtDate).join(' al '):'';
       return '<div class="hist-item">'+
-        '<span class="hist-fecha">'+fmtDate(p.fields[FP.fechaPago])+'</span>'+
-        '<span class="hist-periodo">'+periodoFmt+'</span>'+
+        '<span class="hist-fecha">'+esc(fmtDate(p.fields[FP.fechaPago]))+'</span>'+
+        '<span class="hist-periodo">'+esc(periodoFmt)+'</span>'+
         '<span class="hist-monto">'+fmtMoney(p.fields[FP.monto]||0)+'</span>'+
         '<button class="btn btn-sm btn-ghost" onclick="editarPago(\''+p.id+'\')">Editar</button>'+
         '<button class="btn btn-sm btn-danger" onclick="borrarPago(\''+p.id+'\')">x</button>'+
@@ -1108,7 +1176,7 @@
     document.getElementById('ep-fecha').value=p.fields[FP.fechaPago]||today();
     var periodo=p.fields[FP.periodo]||'';
     document.getElementById('ep-venc').value=periodo?periodo.split(' al ')[1]:'';
-    var s=socios.find(function(x){return x.id===p.fields[FP.socioId];});
+    var s=socios.find(function(x){return x.id===getPagoSocioId(p);});
     document.getElementById('ep-plan').value=s?(getPlan(s)||'Mes'):'Mes';
     document.getElementById('modal-editar-pago').classList.add('open');
   }
@@ -1153,7 +1221,7 @@
   }
 
   function openPagoRapido(){
-    document.getElementById('pr-socio').innerHTML=socios.map(function(s){return '<option value="'+s.id+'">'+getNombre(s)+'</option>';}).join('');
+    document.getElementById('pr-socio').innerHTML=socios.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(getNombre(s))+'</option>';}).join('');
     document.getElementById('pr-monto').value='';
     document.getElementById('pr-fecha').value=today();
     document.getElementById('pr-venc').value='';
@@ -1186,8 +1254,15 @@
   function exportarCSV(){
     var rows=[['Nombre','Apellido','Telefono','Plan','Precio','Vencimiento','Estado','Notas']];
     socios.forEach(function(s){rows.push([s.fields[F.nombre]||'',s.fields[F.apellido]||'',s.fields[F.contacto]||'',getPlan(s),s.fields[F.precio]||0,s.fields[F.fecha]||'',getEstado(s),s.fields[F.notas]||'']);});
-    var csv=rows.map(function(r){return r.map(function(c){return '"'+c+'"';}).join(',');}).join('\n');
-    var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='socios-gym.csv';a.click();
+    function csvCell(value){
+      var text=String(value==null?'':value);
+      if(typeof value==='string'&&/^[\s]*[=+\-@]/.test(value))text="'"+text;
+      return '"'+text.replace(/"/g,'""')+'"';
+    }
+    var csv='\uFEFF'+rows.map(function(r){return r.map(csvCell).join(',');}).join('\r\n');
+    var url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    var a=document.createElement('a');a.href=url;a.download='socios-gym.csv';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},0);
   }
 
   function closeModal(id){document.getElementById(id).classList.remove('open');}
